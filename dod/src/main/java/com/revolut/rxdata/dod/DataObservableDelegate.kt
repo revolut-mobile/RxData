@@ -7,6 +7,23 @@ import io.reactivex.subjects.PublishSubject
 import io.reactivex.subjects.Subject
 import java.util.concurrent.ConcurrentHashMap
 
+/*
+ * Copyright (C) 2019 Yatsinar
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
+
 /**
  * Provides a strategy of retrieving data from network and caching it.
  *
@@ -22,14 +39,16 @@ class DataObservableDelegate<Params : Any?, Key : Any, Domain : Any>(
     private val paramsKey: (params: Params) -> Key,
     private val remove: (key: Key, params: Params) -> Unit = { _, _ -> Unit },
     private val fromStorageSingle: ((key: Key, params: Params) -> Single<Data<Domain>>) =
-        { key, params -> Single.fromCallable {
-            Data(
-                content = fromStorage(
-                    key,
-                    params
+        { key, params ->
+            Single.fromCallable {
+                Data(
+                    content = fromStorage(
+                        key,
+                        params
+                    )
                 )
-            )
-        } }
+            }
+        }
 
 ) {
 
@@ -47,38 +66,39 @@ class DataObservableDelegate<Params : Any?, Key : Any, Domain : Any>(
      * https://revolut.atlassian.net/wiki/spaces/BD/pages/971374735/Offline+mode+strategy
      */
     @Suppress("RedundantLambdaArrow")
-    fun observe(params: Params, forceReload: Boolean = true): Observable<Data<Domain>> = Observable.defer {
-        val key = paramsKey(params)
+    fun observe(params: Params, forceReload: Boolean = true): Observable<Data<Domain>> =
+        Observable.defer {
+            val key = paramsKey(params)
 
-        val memCache = fromMemory(key, params)
-        val memoryIsEmpty = memCache == null
-        val subject = subject(key)
+            val memCache = fromMemory(key, params)
+            val memoryIsEmpty = memCache == null
+            val subject = subject(key)
 
-        (fromStorageSingle(key, params)
-            .doOnSuccess { cachedValue ->
-                cachedValue.content?.let { value ->
-                    toMemory(key, params, value)
+            (fromStorageSingle(key, params)
+                .doOnSuccess { cachedValue ->
+                    cachedValue.content?.let { value ->
+                        toMemory(key, params, value)
+                    }
                 }
-            }
-            .toObservable()
-            .subscribeOn(Schedulers.io())
-            .takeIf { memoryIsEmpty } ?: Observable.just(Data(content = memCache)))
-            .flatMap { cachedValue ->
-                if (forceReload || memoryIsEmpty) {
-                    val data = cachedValue.copy(loading = true)
+                .toObservable()
+                .subscribeOn(Schedulers.io())
+                .takeIf { memoryIsEmpty } ?: Observable.just(Data(content = memCache)))
+                .flatMap { cachedValue ->
+                    if (forceReload || memoryIsEmpty) {
+                        val data = cachedValue.copy(loading = true)
+                        subject.onNext(data)
+                        fetchFromNetwork(cachedValue.content, key, params).startWith(data)
+                    } else {
+                        Observable.just(cachedValue)
+                    }
+                }
+                .onErrorResumeNext { _: Throwable ->
+                    val data = Data(content = null, loading = true)
                     subject.onNext(data)
-                    fetchFromNetwork(cachedValue.content, key, params).startWith(data)
-                } else {
-                    Observable.just(cachedValue)
+                    fetchFromNetwork(null, key, params).startWith(data)
                 }
-            }
-            .onErrorResumeNext { _: Throwable ->
-                val data = Data(content = null, loading = true)
-                subject.onNext(data)
-                fetchFromNetwork(null, key, params).startWith(data)
-            }
-            .concatWith(subject(key).distinctUntilChanged())
-    }
+                .concatWith(subject(key).distinctUntilChanged())
+        }
 
     /**
      * Replaces the data in both caches (Memory, Persistent storage)
@@ -125,7 +145,11 @@ class DataObservableDelegate<Params : Any?, Key : Any, Domain : Any>(
         subject(key).onNext(Data(content = domain))
     }
 
-    private fun fetchFromNetwork(cachedData: Domain?, key: Key, params: Params): Observable<Data<Domain>> {
+    private fun fetchFromNetwork(
+        cachedData: Domain?,
+        key: Key,
+        params: Params
+    ): Observable<Data<Domain>> {
         return sharedRequest.getOrLoad(key, params)
             .map { domain ->
                 toMemory(key, params, domain)
@@ -144,6 +168,8 @@ class DataObservableDelegate<Params : Any?, Key : Any, Domain : Any>(
             .subscribeOn(Schedulers.io())
     }
 
-    private fun subject(key: Key): Subject<Data<Domain>> = subjectsMap.getOrCreate(key, creator = { PublishSubject.create<Data<Domain>>().toSerialized() })
+    private fun subject(key: Key): Subject<Data<Domain>> = subjectsMap.getOrCreate(
+        key,
+        creator = { PublishSubject.create<Data<Domain>>().toSerialized() })
 
 }
