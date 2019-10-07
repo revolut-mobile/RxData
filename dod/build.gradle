@@ -5,6 +5,9 @@ dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
     implementation ("io.reactivex.rxjava2:rxjava:2.2.6")
+    testImplementation 'junit:junit:4.12'
+    testImplementation "com.nhaarman:mockito-kotlin:1.5.0"
+
 }
 
 sourceCompatibility = "7"

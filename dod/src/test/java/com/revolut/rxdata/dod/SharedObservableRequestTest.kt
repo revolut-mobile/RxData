@@ -1,0 +1,97 @@
+package com.revolut.rxdata.dod
+
+import io.reactivex.Observable
+import io.reactivex.plugins.RxJavaPlugins
+import io.reactivex.schedulers.TestScheduler
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
+import org.junit.Before
+import org.junit.Test
+
+class SharedObservableRequestTest {
+
+    private var loadCounter = 0
+
+    private val ioScheduler: TestScheduler = TestScheduler()
+
+    @Before
+    fun setUp() {
+        RxJavaPlugins.setIoSchedulerHandler { ioScheduler }
+    }
+
+    @Test
+    fun `when requested first time then loading started`() {
+        val cache = createCache()
+
+        cache.getOrLoad(key = "1", params = "1").subscribe()
+        ioScheduler.triggerActions()
+
+        assertEquals(1, loadCounter)
+    }
+
+    @Test
+    fun `when request 2 times one by one then only one loading started`() {
+        val cache = createCache()
+        lateinit var result1: Any
+        lateinit var result2: Any
+
+        cache.getOrLoad(key = "1", params = "1").subscribe { result -> result1 = result }
+        cache.getOrLoad(key = "1", params = "1").subscribe { result -> result2 = result }
+        ioScheduler.triggerActions()
+
+        assertEquals(1, loadCounter)
+        assertEquals(result1, result2)
+    }
+
+    @Test
+    fun `when request 2 times with same key and 1 time with different key one by one then 2 loadings started`() {
+        val cache = createCache()
+        lateinit var result1: Any
+        lateinit var result2: Any
+        lateinit var result3: Any
+
+        cache.getOrLoad(key = "1", params = "1").subscribe { result -> result1 = result }
+        cache.getOrLoad(key = "1", params = "1").subscribe { result -> result2 = result }
+        cache.getOrLoad(key = "2", params = "2").subscribe { result -> result3 = result }
+        ioScheduler.triggerActions()
+
+        assertEquals(2, loadCounter)
+        assertEquals(result1, result2)
+        assertNotEquals(result1, result3)
+    }
+
+    @Test
+    fun `when request 2 times one by one with different keys then both loading started`() {
+        val cache = createCache()
+        lateinit var result1: Any
+        lateinit var result2: Any
+
+        cache.getOrLoad(key = "1", params = "1").subscribe { result -> result1 = result }
+        cache.getOrLoad(key = "2", params = "2").subscribe { result -> result2 = result }
+        ioScheduler.triggerActions()
+
+        assertEquals(2, loadCounter)
+        assertNotEquals(result1, result2)
+    }
+
+    @Test
+    fun `when request 2 times with waiting then both loading started`() {
+        val cache = createCache()
+        lateinit var result1: Any
+        lateinit var result2: Any
+
+        cache.getOrLoad(key = "1", params = "1").subscribe { result -> result1 = result }
+        ioScheduler.triggerActions()
+        cache.getOrLoad(key = "1", params = "1").subscribe { result -> result2 = result }
+        ioScheduler.triggerActions()
+
+        assertEquals(2, loadCounter)
+        assertNotEquals(result1, result2)
+    }
+
+    private fun createCache(): SharedObservableRequest<Any, Any, Any> {
+        return SharedObservableRequest(
+            load = { Observable.just(Any().also { loadCounter++ }) }
+        )
+    }
+}
