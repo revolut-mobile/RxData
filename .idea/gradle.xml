@@ -10,6 +10,7 @@
             <option value="$PROJECT_DIR$" />
             <option value="$PROJECT_DIR$/dod" />
             <option value="$PROJECT_DIR$/sample" />
+            <option value="$PROJECT_DIR$/scheduler" />
           </set>
         </option>
         <option name="resolveModulePerSourceSet" value="false" />
