@@ -20,7 +20,7 @@ import io.reactivex.Scheduler
 import io.reactivex.android.plugins.RxAndroidPlugins
 
 /** Android-specific Schedulers.  */
-class AndroidSchedulers private constructor() {
+class RxDataAndroidSchedulers private constructor() {
 
     private object MainHolder {
         internal val DEFAULT: Scheduler =

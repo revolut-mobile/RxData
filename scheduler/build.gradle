@@ -1,6 +1,8 @@
 apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-android-extensions'
+apply plugin: 'com.novoda.bintray-release'
+
 android {
     compileSdkVersion 29
     buildToolsVersion "29.0.2"
@@ -29,9 +31,24 @@ dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
 
-    api "io.reactivex.rxjava2:rxandroid:2.1.1"
-    api 'io.reactivex.rxjava2:rxjava:2.2.10'
+    implementation "io.reactivex.rxjava2:rxandroid:2.1.1"
+    implementation 'io.reactivex.rxjava2:rxjava:2.2.18'
 
-    testImplementation 'junit:junit:4.12'
-    testImplementation 'org.robolectric:robolectric:3.8'
+    testImplementation 'junit:junit:4.13'
+    testImplementation 'org.robolectric:robolectric:4.3'
+}
+
+publish {
+    def groupProjectID = 'com.revolut.rxdata'
+    def artifactProjectID = 'scheduler'
+    def publishVersionID = '1.1'
+
+    userOrg = 'revolut-mobile'
+    repoName = 'RxData'
+    groupId = groupProjectID
+    artifactId = artifactProjectID
+    publishVersion = publishVersionID
+    desc = "RxData Experimental Scheduler with immediate same-thread dispatching"
+    website = "https://github.com/revolut-mobile/RxData"
+
 }

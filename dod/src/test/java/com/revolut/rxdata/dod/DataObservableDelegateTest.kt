@@ -10,7 +10,6 @@ import java.io.IOException
 import java.util.concurrent.TimeUnit
 
 private typealias Params = Int
-private typealias Key = String
 private typealias Domain = String
 
 /*
@@ -38,23 +37,19 @@ class DataObservableDelegateTest {
 
     private val domain: Domain = "domain_model"
 
-    private val key: Key = "key"
-
     private val backendException = IOException("HTTP 500. All tests are green!")
 
     private lateinit var fromNetwork: (Params) -> Single<Domain>
 
-    private lateinit var toMemory: (Key, Params, Domain) -> Unit
+    private lateinit var toMemory: (Params, Domain) -> Unit
 
-    private lateinit var fromMemory: (Key, Params) -> Domain
+    private lateinit var fromMemory: (Params) -> Domain
 
-    private lateinit var toStorage: (Key, Params, Domain) -> Unit
+    private lateinit var toStorage: (Params, Domain) -> Unit
 
-    private lateinit var fromStorage: (Key, Params) -> Domain
+    private lateinit var fromStorage: (Params) -> Domain
 
-    private lateinit var paramsKey: (Params) -> Key
-
-    private lateinit var dataObservableDelegate: DataObservableDelegate<Params, Key, Domain>
+    private lateinit var dataObservableDelegate: DataObservableDelegate<Params, Domain>
 
     private val computationScheduler: TestScheduler = TestScheduler()
     private val ioScheduler: TestScheduler = TestScheduler()
@@ -66,15 +61,13 @@ class DataObservableDelegateTest {
         fromMemory = mock()
         toStorage = mock()
         fromStorage = mock()
-        paramsKey = mock()
 
         dataObservableDelegate = DataObservableDelegate(
             fromNetwork = fromNetwork,
             fromMemory = fromMemory,
             toMemory = toMemory,
             fromStorage = fromStorage,
-            toStorage = toStorage,
-            paramsKey = paramsKey
+            toStorage = toStorage
         )
 
         RxJavaPlugins.setIoSchedulerHandler { ioScheduler }
@@ -84,7 +77,6 @@ class DataObservableDelegateTest {
     @Test
     fun `FORCE observing data when memory cache IS EMPTY and storage IS EMPTY`() {
         whenever(fromNetwork.invoke(eq(params))).thenReturn(Single.fromCallable { domain })
-        whenever(paramsKey.invoke(eq(params))).thenReturn(key)
 
         val testObserver =
             dataObservableDelegate.observe(params = params, forceReload = true).test()
@@ -100,18 +92,16 @@ class DataObservableDelegateTest {
         }
 
         verify(fromNetwork, only()).invoke(eq(params))
-        verify(fromMemory, only()).invoke(eq(key), eq(params))
-        verify(toMemory, only()).invoke(eq(key), eq(params), eq(domain))
-        verify(fromStorage, only()).invoke(eq(key), eq(params))
-        verify(toStorage, only()).invoke(eq(key), eq(params), eq(domain))
-        verify(paramsKey, only()).invoke(eq(params))
+        verify(fromMemory, only()).invoke(eq(params))
+        verify(toMemory, only()).invoke(eq(params), eq(domain))
+        verify(fromStorage, only()).invoke(eq(params))
+        verify(toStorage, only()).invoke(eq(params), eq(domain))
     }
 
     @Test
     fun `FORCE observing data when memory cache IS EMPTY and storage IS NOT EMPTY`() {
         whenever(fromNetwork.invoke(eq(params))).thenReturn(Single.fromCallable { domain })
-        whenever(fromStorage.invoke(eq(key), eq(params))).thenReturn(cachedDomain)
-        whenever(paramsKey.invoke(eq(params))).thenReturn(key)
+        whenever(fromStorage.invoke(eq(params))).thenReturn(cachedDomain)
 
         val testObserver =
             dataObservableDelegate.observe(params = params, forceReload = true).test()
@@ -128,20 +118,19 @@ class DataObservableDelegateTest {
         }
 
         verify(fromNetwork, only()).invoke(eq(params))
-        verify(fromMemory, only()).invoke(eq(key), eq(params))
-        verify(toMemory).invoke(eq(key), eq(params), eq(cachedDomain))
-        verify(toMemory).invoke(eq(key), eq(params), eq(domain))
+        verify(fromMemory, only()).invoke(eq(params))
+        verify(toMemory).invoke(eq(params), eq(cachedDomain))
+        verify(toMemory).invoke(eq(params), eq(domain))
         verifyNoMoreInteractions(toMemory)
-        verify(fromStorage, only()).invoke(eq(key), eq(params))
-        verify(toStorage, only()).invoke(eq(key), eq(params), eq(domain))
-        verify(paramsKey, only()).invoke(eq(params))
+        verify(fromStorage, only()).invoke(eq(params))
+        verify(toStorage, only()).invoke(eq(params), eq(domain))
     }
 
     @Test
     fun `FORCE observing data when memory cache IS NOT EMPTY`() {
         whenever(fromNetwork.invoke(eq(params))).thenReturn(Single.fromCallable { domain })
-        whenever(fromMemory.invoke(eq(key), eq(params))).thenReturn(cachedDomain)
-        whenever(paramsKey.invoke(eq(params))).thenReturn(key)
+        whenever(fromMemory.invoke(eq(params))).thenReturn(cachedDomain)
+
 
         val testObserver =
             dataObservableDelegate.observe(params = params, forceReload = true).test()
@@ -159,17 +148,15 @@ class DataObservableDelegateTest {
         }
 
         verify(fromNetwork, only()).invoke(eq(params))
-        verify(fromMemory, only()).invoke(eq(key), eq(params))
-        verify(toMemory, only()).invoke(eq(key), eq(params), eq(domain))
+        verify(fromMemory, only()).invoke(eq(params))
+        verify(toMemory, only()).invoke(eq(params), eq(domain))
         verifyNoMoreInteractions(fromStorage)
-        verify(toStorage, only()).invoke(eq(key), eq(params), eq(domain))
-        verify(paramsKey, only()).invoke(eq(params))
+        verify(toStorage, only()).invoke(eq(params), eq(domain))
     }
 
     @Test
     fun `FORCE observing data when memory cache IS EMPTY and storage IS EMPTY and server returns ERROR`() {
         whenever(fromNetwork.invoke(eq(params))).thenReturn(Single.fromCallable { throw backendException })
-        whenever(paramsKey.invoke(eq(params))).thenReturn(key)
 
         val testObserver =
             dataObservableDelegate.observe(params = params, forceReload = true).test()
@@ -186,18 +173,16 @@ class DataObservableDelegateTest {
         }
 
         verify(fromNetwork, only()).invoke(eq(params))
-        verify(fromMemory, only()).invoke(eq(key), eq(params))
+        verify(fromMemory, only()).invoke(eq(params))
         verifyNoMoreInteractions(toMemory)
-        verify(fromStorage, only()).invoke(eq(key), eq(params))
+        verify(fromStorage, only()).invoke(eq(params))
         verifyNoMoreInteractions(toStorage)
-        verify(paramsKey, only()).invoke(eq(params))
     }
 
     @Test
     fun `FORCE observing data when memory cache IS EMPTY and storage IS NOT EMPTY and server returns ERROR`() {
         whenever(fromNetwork.invoke(eq(params))).thenReturn(Single.fromCallable { throw backendException })
-        whenever(fromStorage.invoke(eq(key), eq(params))).thenReturn(cachedDomain)
-        whenever(paramsKey.invoke(eq(params))).thenReturn(key)
+        whenever(fromStorage.invoke(eq(params))).thenReturn(cachedDomain)
 
         val testObserver =
             dataObservableDelegate.observe(params = params, forceReload = true).test()
@@ -214,18 +199,16 @@ class DataObservableDelegateTest {
         }
 
         verify(fromNetwork, only()).invoke(eq(params))
-        verify(fromMemory, only()).invoke(eq(key), eq(params))
-        verify(toMemory, only()).invoke(eq(key), eq(params), eq(cachedDomain))
-        verify(fromStorage, only()).invoke(eq(key), eq(params))
+        verify(fromMemory, only()).invoke(eq(params))
+        verify(toMemory, only()).invoke(eq(params), eq(cachedDomain))
+        verify(fromStorage, only()).invoke(eq(params))
         verifyNoMoreInteractions(toStorage)
-        verify(paramsKey, only()).invoke(eq(params))
     }
 
     @Test
     fun `FORCE observing data when memory cache IS NOT EMPTY  and server returns ERROR`() {
         whenever(fromNetwork.invoke(eq(params))).thenReturn(Single.fromCallable { throw backendException })
-        whenever(fromMemory.invoke(eq(key), eq(params))).thenReturn(cachedDomain)
-        whenever(paramsKey.invoke(eq(params))).thenReturn(key)
+        whenever(fromMemory.invoke(eq(params))).thenReturn(cachedDomain)
 
         val testObserver =
             dataObservableDelegate.observe(params = params, forceReload = true).test()
@@ -243,17 +226,16 @@ class DataObservableDelegateTest {
         }
 
         verify(fromNetwork, only()).invoke(eq(params))
-        verify(fromMemory, only()).invoke(eq(key), eq(params))
+        verify(fromMemory, only()).invoke(eq(params))
         verifyNoMoreInteractions(toMemory)
         verifyNoMoreInteractions(fromStorage)
         verifyNoMoreInteractions(toStorage)
-        verify(paramsKey, only()).invoke(eq(params))
     }
 
     @Test
     fun `NOT FORCE observing data when memory cache IS EMPTY and storage IS EMPTY`() {
         whenever(fromNetwork.invoke(eq(params))).thenReturn(Single.fromCallable { domain })
-        whenever(paramsKey.invoke(eq(params))).thenReturn(key)
+
 
         val testObserver =
             dataObservableDelegate.observe(params = params, forceReload = false).test()
@@ -270,18 +252,17 @@ class DataObservableDelegateTest {
         }
 
         verify(fromNetwork, only()).invoke(eq(params))
-        verify(fromMemory, only()).invoke(eq(key), eq(params))
-        verify(toMemory, only()).invoke(eq(key), eq(params), eq(domain))
-        verify(fromStorage, only()).invoke(eq(key), eq(params))
-        verify(toStorage, only()).invoke(eq(key), eq(params), eq(domain))
-        verify(paramsKey, only()).invoke(eq(params))
+        verify(fromMemory, only()).invoke(eq(params))
+        verify(toMemory, only()).invoke(eq(params), eq(domain))
+        verify(fromStorage, only()).invoke(eq(params))
+        verify(toStorage, only()).invoke(eq(params), eq(domain))
     }
 
     @Test
     fun `NOT FORCE observing data when memory cache IS EMPTY and storage IS NOT EMPTY`() {
         whenever(fromNetwork.invoke(eq(params))).thenReturn(Single.fromCallable { domain })
-        whenever(fromStorage.invoke(eq(key), eq(params))).thenReturn(cachedDomain)
-        whenever(paramsKey.invoke(eq(params))).thenReturn(key)
+        whenever(fromStorage.invoke(eq(params))).thenReturn(cachedDomain)
+
 
         val testObserver =
             dataObservableDelegate.observe(params = params, forceReload = false).test()
@@ -298,19 +279,18 @@ class DataObservableDelegateTest {
         }
 
         verify(fromNetwork, only()).invoke(eq(params))
-        verify(fromMemory, only()).invoke(eq(key), eq(params))
-        verify(toMemory).invoke(eq(key), eq(params), eq(cachedDomain))
-        verify(toMemory).invoke(eq(key), eq(params), eq(domain))
+        verify(fromMemory, only()).invoke(eq(params))
+        verify(toMemory).invoke(eq(params), eq(cachedDomain))
+        verify(toMemory).invoke(eq(params), eq(domain))
         verifyNoMoreInteractions(toMemory)
-        verify(fromStorage, only()).invoke(eq(key), eq(params))
-        verify(toStorage).invoke(eq(key), eq(params), eq(domain))
-        verify(paramsKey).invoke(eq(params))
+        verify(fromStorage, only()).invoke(eq(params))
+        verify(toStorage).invoke(eq(params), eq(domain))
     }
 
     @Test
     fun `NOT FORCE observing data when memory cache IS NOT EMPTY`() {
-        whenever(fromMemory.invoke(eq(key), eq(params))).thenReturn(cachedDomain)
-        whenever(paramsKey.invoke(eq(params))).thenReturn(key)
+        whenever(fromMemory.invoke(eq(params))).thenReturn(cachedDomain)
+
 
         val testObserver =
             dataObservableDelegate.observe(params = params, forceReload = false).test()
@@ -321,17 +301,16 @@ class DataObservableDelegateTest {
         }
 
         verifyNoMoreInteractions(fromNetwork)
-        verify(fromMemory, only()).invoke(eq(key), eq(params))
+        verify(fromMemory, only()).invoke(eq(params))
         verifyNoMoreInteractions(toMemory)
         verifyNoMoreInteractions(fromStorage)
         verifyNoMoreInteractions(toStorage)
-        verify(paramsKey, only()).invoke(eq(params))
     }
 
     @Test
     fun `NOT FORCE observing data when memory cache IS EMPTY and storage IS EMPTY and server returns ERROR`() {
         whenever(fromNetwork.invoke(eq(params))).thenReturn(Single.fromCallable { throw backendException })
-        whenever(paramsKey.invoke(eq(params))).thenReturn(key)
+
 
         val testObserver =
             dataObservableDelegate.observe(params = params, forceReload = false).test()
@@ -348,18 +327,17 @@ class DataObservableDelegateTest {
         }
 
         verify(fromNetwork, only()).invoke(eq(params))
-        verify(fromMemory, only()).invoke(eq(key), eq(params))
+        verify(fromMemory, only()).invoke(eq(params))
         verifyNoMoreInteractions(toMemory)
-        verify(fromStorage, only()).invoke(eq(key), eq(params))
+        verify(fromStorage, only()).invoke(eq(params))
         verifyNoMoreInteractions(toStorage)
-        verify(paramsKey, only()).invoke(eq(params))
     }
 
     @Test
     fun `NOT FORCE observing data when memory cache IS EMPTY and storage IS NOT EMPTY and server returns ERROR`() {
         whenever(fromNetwork.invoke(eq(params))).thenReturn(Single.fromCallable { throw backendException })
-        whenever(fromStorage.invoke(eq(key), eq(params))).thenReturn(cachedDomain)
-        whenever(paramsKey.invoke(eq(params))).thenReturn(key)
+        whenever(fromStorage.invoke(eq(params))).thenReturn(cachedDomain)
+
 
         val testObserver =
             dataObservableDelegate.observe(params = params, forceReload = false).test()
@@ -376,11 +354,10 @@ class DataObservableDelegateTest {
         }
 
         verify(fromNetwork, only()).invoke(eq(params))
-        verify(fromMemory, only()).invoke(eq(key), eq(params))
-        verify(toMemory, only()).invoke(eq(key), eq(params), eq(cachedDomain))
-        verify(fromStorage, only()).invoke(eq(key), eq(params))
+        verify(fromMemory, only()).invoke(eq(params))
+        verify(toMemory, only()).invoke(eq(params), eq(cachedDomain))
+        verify(fromStorage, only()).invoke(eq(params))
         verifyNoMoreInteractions(toStorage)
-        verify(paramsKey).invoke(eq(params))
     }
 
     @Test
@@ -395,8 +372,8 @@ class DataObservableDelegateTest {
                 throw backendException
             }
         })
-        whenever(fromMemory.invoke(eq(key), eq(params))).thenReturn(cachedDomain)
-        whenever(paramsKey.invoke(eq(params))).thenReturn(key)
+        whenever(fromMemory.invoke(eq(params))).thenReturn(cachedDomain)
+
 
         val testObserver1 =
             dataObservableDelegate.observe(params = params, forceReload = false).test()
@@ -432,9 +409,9 @@ class DataObservableDelegateTest {
             it.content == domain && it.error == null && !it.loading
         }
 
-        verify(toMemory).invoke(eq(key), eq(params), eq(domain))
+        verify(toMemory).invoke(eq(params), eq(domain))
 
-        whenever(fromMemory.invoke(eq(key), eq(params))).thenReturn(domain)
+        whenever(fromMemory.invoke(eq(params))).thenReturn(domain)
 
         //refresh with error
         val testObserver3 =
@@ -475,17 +452,17 @@ class DataObservableDelegateTest {
 
     @Test
     fun `re-subscribing to constructed stream re-fetches memory cache`() {
-        whenever(fromMemory.invoke(eq(key), eq(params))).thenReturn(cachedDomain)
-        whenever(paramsKey.invoke(eq(params))).thenReturn(key)
+        whenever(fromMemory.invoke(eq(params))).thenReturn(cachedDomain)
+
 
         val observable = dataObservableDelegate.observe(params, forceReload = true)
 
         observable.test().awaitCount(1).dispose()
-        verify(fromMemory, times(1)).invoke(eq(key), eq(params))
+        verify(fromMemory, times(1)).invoke(eq(params))
 
         observable.test().awaitCount(1).dispose()
 
-        verify(fromMemory, times(2)).invoke(eq(key), eq(params))
+        verify(fromMemory, times(2)).invoke(eq(params))
     }
 
 }

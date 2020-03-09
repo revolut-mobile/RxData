@@ -21,29 +21,29 @@ import java.util.*
  *
  */
 
-internal class SharedObservableRequest<Key, Params, Result>(
+internal class SharedObservableRequest<Params, Result>(
     private val load: (params: Params) -> Observable<Result>
 ) {
 
-    private val requests = HashMap<Key, Observable<Result>>()
+    private val requests = HashMap<Params, Observable<Result>>()
 
-    fun getOrLoad(key: Key, params: Params): Observable<Result> {
+    fun getOrLoad(params: Params): Observable<Result> {
         return Observable
             .defer {
                 synchronized(requests) {
-                    requests[key]?.let { cachedShared ->
+                    requests[params]?.let { cachedShared ->
                         return@defer cachedShared
                     }
 
                     val newShared = load(params)
                         .observeOn(Schedulers.io())
                         .doFinally {
-                            synchronized(requests) { requests.remove(key) }
+                            synchronized(requests) { requests.remove(params) }
                         }
                         .replay(1)
                         .refCount()
 
-                    requests[key] = newShared
+                    requests[params] = newShared
                     return@defer newShared
                 }
             }

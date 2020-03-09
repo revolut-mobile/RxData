@@ -40,7 +40,7 @@ class SharedObservableRequestTest {
     fun `when requested first time then loading started`() {
         val cache = createCache()
 
-        cache.getOrLoad(key = "1", params = "1").subscribe()
+        cache.getOrLoad(params = "1").subscribe()
         ioScheduler.triggerActions()
 
         assertEquals(1, loadCounter)
@@ -52,8 +52,8 @@ class SharedObservableRequestTest {
         lateinit var result1: Any
         lateinit var result2: Any
 
-        cache.getOrLoad(key = "1", params = "1").subscribe { result -> result1 = result }
-        cache.getOrLoad(key = "1", params = "1").subscribe { result -> result2 = result }
+        cache.getOrLoad(params = "1").subscribe { result -> result1 = result }
+        cache.getOrLoad(params = "1").subscribe { result -> result2 = result }
         ioScheduler.triggerActions()
 
         assertEquals(1, loadCounter)
@@ -67,9 +67,9 @@ class SharedObservableRequestTest {
         lateinit var result2: Any
         lateinit var result3: Any
 
-        cache.getOrLoad(key = "1", params = "1").subscribe { result -> result1 = result }
-        cache.getOrLoad(key = "1", params = "1").subscribe { result -> result2 = result }
-        cache.getOrLoad(key = "2", params = "2").subscribe { result -> result3 = result }
+        cache.getOrLoad(params = "1").subscribe { result -> result1 = result }
+        cache.getOrLoad(params = "1").subscribe { result -> result2 = result }
+        cache.getOrLoad(params = "2").subscribe { result -> result3 = result }
         ioScheduler.triggerActions()
 
         assertEquals(2, loadCounter)
@@ -83,8 +83,8 @@ class SharedObservableRequestTest {
         lateinit var result1: Any
         lateinit var result2: Any
 
-        cache.getOrLoad(key = "1", params = "1").subscribe { result -> result1 = result }
-        cache.getOrLoad(key = "2", params = "2").subscribe { result -> result2 = result }
+        cache.getOrLoad(params = "1").subscribe { result -> result1 = result }
+        cache.getOrLoad(params = "2").subscribe { result -> result2 = result }
         ioScheduler.triggerActions()
 
         assertEquals(2, loadCounter)
@@ -97,16 +97,16 @@ class SharedObservableRequestTest {
         lateinit var result1: Any
         lateinit var result2: Any
 
-        cache.getOrLoad(key = "1", params = "1").subscribe { result -> result1 = result }
+        cache.getOrLoad(params = "1").subscribe { result -> result1 = result }
         ioScheduler.triggerActions()
-        cache.getOrLoad(key = "1", params = "1").subscribe { result -> result2 = result }
+        cache.getOrLoad(params = "1").subscribe { result -> result2 = result }
         ioScheduler.triggerActions()
 
         assertEquals(2, loadCounter)
         assertNotEquals(result1, result2)
     }
 
-    private fun createCache(): SharedObservableRequest<Any, Any, Any> {
+    private fun createCache(): SharedObservableRequest<Any, Any> {
         return SharedObservableRequest(
             load = { Observable.just(Any().also { loadCounter++ }) }
         )
