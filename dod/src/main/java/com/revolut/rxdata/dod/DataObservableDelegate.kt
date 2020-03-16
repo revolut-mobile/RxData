@@ -1,5 +1,6 @@
 package com.revolut.rxdata.dod
 
+import com.revolut.rxdata.core.Data
 import io.reactivex.Observable
 import io.reactivex.Single
 import io.reactivex.schedulers.Schedulers
