@@ -1,4 +1,4 @@
-package com.revolut.rxdata.dod
+package com.revolut.rxdata.core
 
 /*
  * Copyright (C) 2019 Revolut

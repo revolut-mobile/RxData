@@ -4,12 +4,8 @@ apply plugin: 'com.novoda.bintray-release'
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
     implementation ("io.reactivex.rxjava2:rxjava:2.2.18")
-    implementation project(":core")
-    testImplementation 'junit:junit:4.13'
-    testImplementation "com.nhaarman:mockito-kotlin:1.5.0"
-
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
 }
 
 buildscript {
@@ -27,7 +23,7 @@ repositories {
 
 publish {
     def groupProjectID = 'com.revolut.rxdata'
-    def artifactProjectID = 'dod'
+    def artifactProjectID = 'core'
     def publishVersionID = '1.2'
 
     userOrg = 'revolut-mobile'
@@ -35,7 +31,7 @@ publish {
     groupId = groupProjectID
     artifactId = artifactProjectID
     publishVersion = publishVersionID
-    desc = "RxData DataObservableDelegate"
+    desc = "RxData Core Models and Extensions"
     website = "https://github.com/revolut-mobile/RxData"
-}
 
+}

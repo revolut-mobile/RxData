@@ -1,2 +1,2 @@
-include ':dod', ':sample', ':scheduler'
+include ':dod', ':sample', ':scheduler', ':core'
 rootProject.name='RxData'
