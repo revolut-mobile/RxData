@@ -158,6 +158,28 @@ class DataObservableDelegateTest {
     }
 
     @Test
+    fun `WHEN fromNetwork is retried AND notifyFromMemory called THEN subscriber receives the value`() {
+        whenever(fromNetwork.invoke(eq(params))).thenReturn(Single.never())
+        whenever(fromMemory.invoke(eq(params))).thenReturn(cachedDomain)
+
+
+        val testObserver =
+            dataObservableDelegate.observe(params = params, forceReload = true).test()
+
+        testObserver.assertValueCount(1)
+        testObserver.assertValueAt(0) {
+            it.content == cachedDomain && it.error == null && it.loading
+        }
+
+        val err = IllegalStateException("From Network is Retried Outside")
+        dataObservableDelegate.notifyFromMemory(error = err, loading = true) { it == params }
+
+        testObserver.assertValueAt(1) {
+            it.content == cachedDomain && it.error == err && it.loading
+        }
+    }
+
+    @Test
     fun `FORCE observing data when memory cache IS EMPTY and storage IS EMPTY and server returns ERROR`() {
         whenever(fromNetwork.invoke(eq(params))).thenReturn(Single.fromCallable { throw backendException })
 

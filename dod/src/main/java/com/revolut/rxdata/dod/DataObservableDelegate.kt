@@ -2,6 +2,8 @@ package com.revolut.rxdata.dod
 
 import com.revolut.rxdata.core.Data
 import io.reactivex.Observable
+import io.reactivex.Observable.concat
+import io.reactivex.Observable.just
 import io.reactivex.Single
 import io.reactivex.schedulers.Schedulers
 import io.reactivex.subjects.PublishSubject
@@ -71,22 +73,34 @@ class DataObservableDelegate<Params : Any, Domain : Any> constructor(
                 }
                 .toObservable()
                 .subscribeOn(Schedulers.io())
-                .takeIf { memoryIsEmpty } ?: Observable.just(Data(content = memCache)))
+                .takeIf { memoryIsEmpty } ?: just(Data(content = memCache)))
                 .flatMap { cachedValue ->
                     if (forceReload || memoryIsEmpty) {
                         val data = cachedValue.copy(loading = true)
                         subject.onNext(data)
-                        fetchFromNetwork(cachedValue.content, params).startWith(data)
+
+                        concat(
+                            just(data),
+                            fetchFromNetwork(cachedValue.content, params).mergeWith(subject)
+                        )
                     } else {
-                        Observable.just(cachedValue)
+                        concat(
+                            just(cachedValue),
+                            subject
+                        )
                     }
                 }
                 .onErrorResumeNext { _: Throwable ->
                     val data = Data(content = null, loading = true)
                     subject.onNext(data)
-                    fetchFromNetwork(null, params).startWith(data)
+
+                    concat(
+                        just(data),
+                        fetchFromNetwork(null, params).mergeWith(subject)
+                    )
                 }
-                .concatWith(subject.distinctUntilChanged())
+                .distinctUntilChanged()
+
         }
 
     /**
