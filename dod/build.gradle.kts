@@ -28,7 +28,7 @@ publishKotlinFix()
 configure<PublishExtension> {
     val groupProjectID = "com.revolut.rxdata"
     val artifactProjectID = "dod"
-    val publishVersionID = "1.2.1"
+    val publishVersionID = "1.2.2"
 
     bintrayUser = BINTRAY_USER
     bintrayKey = BINTRAY_KEY

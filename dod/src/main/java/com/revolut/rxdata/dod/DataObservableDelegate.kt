@@ -32,7 +32,7 @@ import java.util.concurrent.ConcurrentHashMap
  *
  */
 class DataObservableDelegate<Params : Any, Domain : Any> constructor(
-    fromNetwork: (params: Params) -> Single<Domain>,
+    fromNetwork: DataObservableDelegate<Params, Domain>.(params: Params) -> Single<Domain>,
     private val fromMemory: (params: Params) -> Domain? = { _ -> null },
     private val toMemory: (params: Params, Domain) -> Unit = { _, _ -> Unit },
     private val fromStorage: ((params: Params) -> Domain?) = { _ -> null },
@@ -45,7 +45,7 @@ class DataObservableDelegate<Params : Any, Domain : Any> constructor(
 
     private val subjectsMap = ConcurrentHashMap<Params, Subject<Data<Domain>>>()
     private val sharedRequest: SharedSingleRequest<Params, Domain> =
-        SharedSingleRequest(fromNetwork)
+        SharedSingleRequest { params -> this.fromNetwork(params) }
 
     /**
      * Requests data from network and subscribes to updates
@@ -112,10 +112,14 @@ class DataObservableDelegate<Params : Any, Domain : Any> constructor(
      * Data(fromMemory(params), loading = false, error = null).
      * @param where must return true if subscriber requires notification.
      */
-    fun notifyFromMemory(where: (Params) -> Boolean) {
+    fun notifyFromMemory(
+        error: Throwable? = null,
+        loading: Boolean = false,
+        where: (Params) -> Boolean
+    ) {
         subjectsMap.forEach { (params, subject) ->
             if (where(params)) {
-                subject.onNext(Data(content = fromMemory(params)))
+                subject.onNext(Data(content = fromMemory(params), error = error, loading = loading))
             }
         }
     }

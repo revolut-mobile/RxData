@@ -41,6 +41,9 @@ class DataObservableDelegateTest {
 
     private lateinit var fromNetwork: (Params) -> Single<Domain>
 
+    private val fromNetworkScoped: DataObservableDelegate<Params, Domain>.(Params) -> Single<Domain> =
+        { fromNetwork(it) }
+
     private lateinit var toMemory: (Params, Domain) -> Unit
 
     private lateinit var fromMemory: (Params) -> Domain
@@ -63,7 +66,7 @@ class DataObservableDelegateTest {
         fromStorage = mock()
 
         dataObservableDelegate = DataObservableDelegate(
-            fromNetwork = fromNetwork,
+            fromNetwork = fromNetworkScoped,
             fromMemory = fromMemory,
             toMemory = toMemory,
             fromStorage = fromStorage,
