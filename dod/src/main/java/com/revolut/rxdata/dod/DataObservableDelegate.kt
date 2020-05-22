@@ -71,9 +71,10 @@ class DataObservableDelegate<Params : Any, Domain : Any> constructor(
                         toMemory(params, value)
                     }
                 }
+                .toObservable()
                 .subscribeOn(Schedulers.io())
-                .takeIf { memoryIsEmpty } ?: Single.just(Data(content = memCache)))
-                .flatMapObservable { cachedValue ->
+                .takeIf { memoryIsEmpty } ?: just(Data(content = memCache)))
+                .flatMap { cachedValue ->
                     if (forceReload || memoryIsEmpty) {
                         val data = cachedValue.copy(loading = true)
                         subject.onNext(data)
