@@ -1,6 +1,7 @@
 package com.revolut.rxdata.dod
 
 import com.nhaarman.mockito_kotlin.*
+import com.revolut.rxdata.core.Data
 import io.reactivex.Single
 import io.reactivex.plugins.RxJavaPlugins
 import io.reactivex.schedulers.TestScheduler
@@ -83,16 +84,14 @@ class DataObservableDelegateTest {
 
         val testObserver =
             dataObservableDelegate.observe(params = params, forceReload = true).test()
-        testObserver.assertValueCount(0)
+
+        testObserver.assertValueCount(1)
+        testObserver.assertValueAt(0, Data(null, error = null, loading = true))
 
         ioScheduler.advanceTimeBy(10, TimeUnit.MILLISECONDS)
         testObserver.assertValueCount(2)
-        testObserver.assertValueAt(0) {
-            it.content == null && it.error == null && it.loading
-        }
-        testObserver.assertValueAt(1) {
-            it.content == domain && it.error == null && !it.loading
-        }
+
+        testObserver.assertValueAt(1, Data(domain, error = null, loading = false))
 
         verify(fromNetwork, only()).invoke(eq(params))
         verify(fromMemory, only()).invoke(eq(params))
@@ -108,17 +107,16 @@ class DataObservableDelegateTest {
 
         val testObserver =
             dataObservableDelegate.observe(params = params, forceReload = true).test()
-        testObserver.assertValueCount(0)
+
+        testObserver.assertValueCount(1)
+        testObserver.assertValueAt(0, Data(null, error = null, loading = true))
 
         ioScheduler.advanceTimeBy(10, TimeUnit.MILLISECONDS)
 
-        testObserver.assertValueCount(2)
-        testObserver.assertValueAt(0) {
-            it.content == cachedDomain && it.error == null && it.loading
-        }
-        testObserver.assertValueAt(1) {
-            it.content == domain && it.error == null && !it.loading
-        }
+        testObserver.assertValueCount(3)
+
+        testObserver.assertValueAt(1, Data(cachedDomain, error = null, loading = true))
+        testObserver.assertValueAt(2, Data(domain, error = null, loading = false))
 
         verify(fromNetwork, only()).invoke(eq(params))
         verify(fromMemory, only()).invoke(eq(params))
@@ -139,16 +137,12 @@ class DataObservableDelegateTest {
             dataObservableDelegate.observe(params = params, forceReload = true).test()
 
         testObserver.assertValueCount(1)
-        testObserver.assertValueAt(0) {
-            it.content == cachedDomain && it.error == null && it.loading
-        }
+        testObserver.assertValueAt(0, Data(content = cachedDomain, error = null, loading = true))
 
         ioScheduler.advanceTimeBy(10, TimeUnit.MILLISECONDS)
 
         testObserver.assertValueCount(2)
-        testObserver.assertValueAt(1) {
-            it.content == domain && it.error == null && !it.loading
-        }
+        testObserver.assertValueAt(1, Data(content = domain, error = null, loading = false))
 
         verify(fromNetwork, only()).invoke(eq(params))
         verify(fromMemory, only()).invoke(eq(params))
@@ -167,16 +161,13 @@ class DataObservableDelegateTest {
             dataObservableDelegate.observe(params = params, forceReload = true).test()
 
         testObserver.assertValueCount(1)
-        testObserver.assertValueAt(0) {
-            it.content == cachedDomain && it.error == null && it.loading
-        }
+        testObserver.assertValueAt(0, Data(content = cachedDomain, error = null, loading = true))
 
         val err = IllegalStateException("From Network is Retried Outside")
         dataObservableDelegate.notifyFromMemory(error = err, loading = true) { it == params }
 
-        testObserver.assertValueAt(1) {
-            it.content == cachedDomain && it.error == err && it.loading
-        }
+        testObserver.assertValueAt(1, Data(content = cachedDomain, error = err, loading = true))
+
     }
 
     @Test
@@ -185,17 +176,15 @@ class DataObservableDelegateTest {
 
         val testObserver =
             dataObservableDelegate.observe(params = params, forceReload = true).test()
-        testObserver.assertValueCount(0)
+
+        testObserver.assertValueCount(1)
+        testObserver.assertValueAt(0, Data(null, error = null, loading = true))
 
         ioScheduler.advanceTimeBy(10, TimeUnit.MILLISECONDS)
 
         testObserver.assertValueCount(2)
-        testObserver.assertValueAt(0) {
-            it.content == null && it.error == null && it.loading
-        }
-        testObserver.assertValueAt(1) {
-            it.content == null && it.error == backendException && !it.loading
-        }
+        testObserver.assertValueAt(1, Data(null, error = backendException, loading = false))
+
 
         verify(fromNetwork, only()).invoke(eq(params))
         verify(fromMemory, only()).invoke(eq(params))
@@ -211,17 +200,15 @@ class DataObservableDelegateTest {
 
         val testObserver =
             dataObservableDelegate.observe(params = params, forceReload = true).test()
-        testObserver.assertValueCount(0)
+        testObserver.assertValueCount(1)
+        testObserver.assertValueAt(0, Data(null, error = null, loading = true))
 
         ioScheduler.advanceTimeBy(10, TimeUnit.MILLISECONDS)
 
-        testObserver.assertValueCount(2)
-        testObserver.assertValueAt(0) {
-            it.content == cachedDomain && it.error == null && it.loading
-        }
-        testObserver.assertValueAt(1) {
-            it.content == cachedDomain && it.error == backendException && !it.loading
-        }
+        testObserver.assertValueCount(3)
+
+        testObserver.assertValueAt(1, Data(cachedDomain, error = null, loading = true))
+        testObserver.assertValueAt(2, Data(cachedDomain, error = backendException, loading = false))
 
         verify(fromNetwork, only()).invoke(eq(params))
         verify(fromMemory, only()).invoke(eq(params))
@@ -239,16 +226,15 @@ class DataObservableDelegateTest {
             dataObservableDelegate.observe(params = params, forceReload = true).test()
 
         testObserver.assertValueCount(1)
-        testObserver.assertValueAt(0) {
-            it.content == cachedDomain && it.error == null && it.loading
-        }
+        testObserver.assertValueAt(0, Data(content = cachedDomain, error = null, loading = true))
 
         ioScheduler.advanceTimeBy(10, TimeUnit.MILLISECONDS)
 
         testObserver.assertValueCount(2)
-        testObserver.assertValueAt(1) {
-            it.content == cachedDomain && it.error == backendException && !it.loading
-        }
+        testObserver.assertValueAt(
+            1,
+            Data(content = cachedDomain, error = backendException, loading = false)
+        )
 
         verify(fromNetwork, only()).invoke(eq(params))
         verify(fromMemory, only()).invoke(eq(params))
@@ -261,20 +247,15 @@ class DataObservableDelegateTest {
     fun `NOT FORCE observing data when memory cache IS EMPTY and storage IS EMPTY`() {
         whenever(fromNetwork.invoke(eq(params))).thenReturn(Single.fromCallable { domain })
 
-
         val testObserver =
             dataObservableDelegate.observe(params = params, forceReload = false).test()
-        testObserver.assertValueCount(0)
+        testObserver.assertValueCount(1)
+        testObserver.assertValueAt(0, Data(null, error = null, loading = true))
 
         ioScheduler.advanceTimeBy(10, TimeUnit.MILLISECONDS)
 
         testObserver.assertValueCount(2)
-        testObserver.assertValueAt(0) {
-            it.content == null && it.error == null && it.loading
-        }
-        testObserver.assertValueAt(1) {
-            it.content == domain && it.error == null && !it.loading
-        }
+        testObserver.assertValueAt(1, Data(domain, error = null, loading = false))
 
         verify(fromNetwork, only()).invoke(eq(params))
         verify(fromMemory, only()).invoke(eq(params))
@@ -288,20 +269,16 @@ class DataObservableDelegateTest {
         whenever(fromNetwork.invoke(eq(params))).thenReturn(Single.fromCallable { domain })
         whenever(fromStorage.invoke(eq(params))).thenReturn(cachedDomain)
 
-
         val testObserver =
             dataObservableDelegate.observe(params = params, forceReload = false).test()
-        testObserver.assertValueCount(0)
+        testObserver.assertValueCount(1)
+        testObserver.assertValueAt(0, Data(null, error = null, loading = true))
 
         ioScheduler.advanceTimeBy(10, TimeUnit.MILLISECONDS)
 
-        testObserver.assertValueCount(2)
-        testObserver.assertValueAt(0) {
-            it.content == cachedDomain && it.error == null && it.loading
-        }
-        testObserver.assertValueAt(1) {
-            it.content == domain && it.error == null && !it.loading
-        }
+        testObserver.assertValueCount(3)
+        testObserver.assertValueAt(1, Data(cachedDomain, error = null, loading = true))
+        testObserver.assertValueAt(2, Data(domain, error = null, loading = false))
 
         verify(fromNetwork, only()).invoke(eq(params))
         verify(fromMemory, only()).invoke(eq(params))
@@ -316,14 +293,11 @@ class DataObservableDelegateTest {
     fun `NOT FORCE observing data when memory cache IS NOT EMPTY`() {
         whenever(fromMemory.invoke(eq(params))).thenReturn(cachedDomain)
 
-
         val testObserver =
             dataObservableDelegate.observe(params = params, forceReload = false).test()
 
         testObserver.assertValueCount(1)
-        testObserver.assertValueAt(0) {
-            it.content == cachedDomain && it.error == null && !it.loading
-        }
+        testObserver.assertValueAt(0, Data(content = cachedDomain, error = null, loading = false))
 
         verifyNoMoreInteractions(fromNetwork)
         verify(fromMemory, only()).invoke(eq(params))
@@ -336,20 +310,16 @@ class DataObservableDelegateTest {
     fun `NOT FORCE observing data when memory cache IS EMPTY and storage IS EMPTY and server returns ERROR`() {
         whenever(fromNetwork.invoke(eq(params))).thenReturn(Single.fromCallable { throw backendException })
 
-
         val testObserver =
             dataObservableDelegate.observe(params = params, forceReload = false).test()
-        testObserver.assertValueCount(0)
+
+        testObserver.assertValueCount(1)
+        testObserver.assertValueAt(0, Data(null, error = null, loading = true))
 
         ioScheduler.advanceTimeBy(10, TimeUnit.MILLISECONDS)
 
         testObserver.assertValueCount(2)
-        testObserver.assertValueAt(0) {
-            it.content == null && it.error == null && it.loading
-        }
-        testObserver.assertValueAt(1) {
-            it.content == null && it.error == backendException && !it.loading
-        }
+        testObserver.assertValueAt(1, Data(null, error = backendException, loading = false))
 
         verify(fromNetwork, only()).invoke(eq(params))
         verify(fromMemory, only()).invoke(eq(params))
@@ -366,17 +336,16 @@ class DataObservableDelegateTest {
 
         val testObserver =
             dataObservableDelegate.observe(params = params, forceReload = false).test()
-        testObserver.assertValueCount(0)
+
+        testObserver.assertValueCount(1)
+        testObserver.assertValueAt(0, Data(null, error = null, loading = true))
 
         ioScheduler.advanceTimeBy(10, TimeUnit.MILLISECONDS)
 
-        testObserver.assertValueCount(2)
-        testObserver.assertValueAt(0) {
-            it.content == cachedDomain && it.error == null && it.loading
-        }
-        testObserver.assertValueAt(1) {
-            it.content == cachedDomain && it.error == backendException && !it.loading
-        }
+        testObserver.assertValueCount(3)
+        testObserver.assertValueAt(1, Data(cachedDomain, error = null, loading = true))
+
+        testObserver.assertValueAt(2, Data(cachedDomain, error = backendException, loading = false))
 
         verify(fromNetwork, only()).invoke(eq(params))
         verify(fromMemory, only()).invoke(eq(params))
@@ -404,35 +373,25 @@ class DataObservableDelegateTest {
             dataObservableDelegate.observe(params = params, forceReload = false).test()
 
         testObserver1.assertValueCount(1)
-        testObserver1.assertValueAt(0) {
-            it.content == cachedDomain && it.error == null && !it.loading
-        }
+        testObserver1.assertValueAt(0, Data(content = cachedDomain, error = null, loading = false))
 
         // refresh with result
         val testObserver2 =
             dataObservableDelegate.observe(params = params, forceReload = true).test()
 
         testObserver1.assertValueCount(2)
-        testObserver1.assertValueAt(1) {
-            it.content == cachedDomain && it.error == null && it.loading
-        }
+        testObserver1.assertValueAt(1, Data(content = cachedDomain, error = null, loading = true))
 
         testObserver2.assertValueCount(1)
-        testObserver2.assertValueAt(0) {
-            it.content == cachedDomain && it.error == null && it.loading
-        }
+        testObserver2.assertValueAt(0, Data(content = cachedDomain, error = null, loading = true))
 
         ioScheduler.advanceTimeBy(10, TimeUnit.MILLISECONDS)
 
         testObserver1.assertValueCount(3)
-        testObserver1.assertValueAt(2) {
-            it.content == domain && it.error == null && !it.loading
-        }
+        testObserver1.assertValueAt(2, Data(content = domain, error = null, loading = false))
 
         testObserver2.assertValueCount(2)
-        testObserver2.assertValueAt(1) {
-            it.content == domain && it.error == null && !it.loading
-        }
+        testObserver2.assertValueAt(1, Data(content = domain, error = null, loading = false))
 
         verify(toMemory).invoke(eq(params), eq(domain))
 
@@ -443,36 +402,33 @@ class DataObservableDelegateTest {
             dataObservableDelegate.observe(params = params, forceReload = true).test()
 
         testObserver1.assertValueCount(4)
-        testObserver1.assertValueAt(3) {
-            it.content == domain && it.error == null && it.loading
-        }
+        testObserver1.assertValueAt(3, Data(content = domain, error = null, loading = true))
 
         testObserver2.assertValueCount(3)
-        testObserver2.assertValueAt(2) {
-            it.content == domain && it.error == null && it.loading
-        }
+        testObserver2.assertValueAt(2, Data(content = domain, error = null, loading = true))
 
         testObserver3.assertValueCount(1)
-        testObserver3.assertValueAt(0) {
-            it.content == domain && it.error == null && it.loading
-        }
+        testObserver3.assertValueAt(0, Data(content = domain, error = null, loading = true))
 
         ioScheduler.advanceTimeBy(10, TimeUnit.MILLISECONDS)
 
         testObserver1.assertValueCount(5)
-        testObserver1.assertValueAt(4) {
-            it.content == domain && it.error == backendException && !it.loading
-        }
+        testObserver1.assertValueAt(
+            4,
+            Data(content = domain, error = backendException, loading = false)
+        )
 
         testObserver2.assertValueCount(4)
-        testObserver2.assertValueAt(3) {
-            it.content == domain && it.error == backendException && !it.loading
-        }
+        testObserver2.assertValueAt(
+            3,
+            Data(content = domain, error = backendException, loading = false)
+        )
 
         testObserver3.assertValueCount(2)
-        testObserver3.assertValueAt(1) {
-            it.content == domain && it.error == backendException && !it.loading
-        }
+        testObserver3.assertValueAt(
+            1,
+            Data(content = domain, error = backendException, loading = false)
+        )
     }
 
     @Test
