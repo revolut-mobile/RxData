@@ -54,9 +54,6 @@ class DataObservableDelegate<Params : Any, Domain : Any> constructor(
      * (can be triggered by other subscribers or manual cache overrides)
      *
      * @param forceReload - if true network request will be made even if data exists in caches
-     *
-     * For details:
-     * https://revolut.atlassian.net/wiki/spaces/BD/pages/971374735/Offline+mode+strategy
      */
     @Suppress("RedundantLambdaArrow")
     fun observe(params: Params, forceReload: Boolean = true): Observable<Data<Domain>> =
@@ -64,28 +61,21 @@ class DataObservableDelegate<Params : Any, Domain : Any> constructor(
             val memCache = fromMemory(params)
             val memoryIsEmpty = memCache == null
             val subject = subject(params)
+            val loading = forceReload || memoryIsEmpty
 
-            (fromStorageSingle(params)
-                .doOnSuccess { cachedValue ->
-                    cachedValue.content?.let { value ->
-                        toMemory(params, value)
-                    }
-                }
-                .toObservable()
-                .subscribeOn(Schedulers.io())
-                .takeIf { memoryIsEmpty } ?: just(Data(content = memCache)))
-                .flatMap { cachedValue ->
-                    if (forceReload || memoryIsEmpty) {
-                        val data = cachedValue.copy(loading = true)
+            fetchFromStorage(memCache, params)
+                .flatMapObservable { storageData ->
+                    if (loading) {
+                        val data = storageData.copy(loading = true)
                         subject.onNext(data)
 
                         concat(
                             just(data),
-                            fetchFromNetwork(cachedValue.content, params).mergeWith(subject)
+                            fetchFromNetwork(storageData.content, params).mergeWith(subject)
                         )
                     } else {
                         concat(
-                            just(cachedValue),
+                            just(storageData),
                             subject
                         )
                     }
@@ -99,6 +89,7 @@ class DataObservableDelegate<Params : Any, Domain : Any> constructor(
                         fetchFromNetwork(null, params).mergeWith(subject)
                     )
                 }
+                .startWith(Data(memCache, loading = loading))
                 .distinctUntilChanged()
 
         }
@@ -158,8 +149,21 @@ class DataObservableDelegate<Params : Any, Domain : Any> constructor(
         subject(params).onNext(Data(content = domain))
     }
 
-    private fun fetchFromNetwork(cachedData: Domain?, params: Params): Observable<Data<Domain>> {
-        return sharedRequest.getOrLoad(params)
+    private fun fetchFromStorage(memCache: Domain?, params: Params): Single<Data<Domain>> =
+        if (memCache != null) {
+            Single.just(Data(content = memCache))
+        } else {
+            fromStorageSingle(params)
+                .doOnSuccess { cachedValue ->
+                    cachedValue.content?.let { value ->
+                        toMemory(params, value)
+                    }
+                }
+                .subscribeOn(Schedulers.io())
+        }
+
+    private fun fetchFromNetwork(cachedData: Domain?, params: Params): Observable<Data<Domain>> =
+        sharedRequest.getOrLoad(params)
             .map { domain ->
                 toMemory(params, domain)
                 toStorage(params, domain)
@@ -175,7 +179,6 @@ class DataObservableDelegate<Params : Any, Domain : Any> constructor(
             }
             .toObservable()
             .subscribeOn(Schedulers.io())
-    }
 
     private fun subject(params: Params): Subject<Data<Domain>> = subjectsMap.getOrCreate(
         params,
