@@ -8,6 +8,9 @@ plugins {
 dependencies {
     implementation(Dependencies.rxJava)
     implementation(Dependencies.kotlinStdLib)
+
+    testImplementation(Dependencies.jUnit)
+    testImplementation(Dependencies.mockitoKotlin)
 }
 
 repositories {
@@ -19,7 +22,7 @@ publishKotlinFix()
 configure<PublishExtension> {
     val groupProjectID = "com.revolut.rxdata"
     val artifactProjectID = "core"
-    val publishVersionID = "1.2.5"
+    val publishVersionID = "1.2.6"
 
     bintrayUser = BINTRAY_USER
     bintrayKey = BINTRAY_KEY
