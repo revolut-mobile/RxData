@@ -82,6 +82,28 @@ fun <T, R> Observable<Data<T>>.switchMapDataContentSingle(block: (T) -> Single<R
         }
     }
 
+fun <T, R> Observable<Data<T>>.switchMapData(block: (T) -> Observable<Data<R>>): Observable<Data<R>> =
+    switchMap { original ->
+        if (original.content != null) {
+            try {
+                block(original.content)
+            } catch (t: Throwable) {
+                Observable.just(
+                    Data<R>(
+                        error = combineErrors(original.error, t),
+                        loading = original.loading
+                    )
+                )
+            }
+        } else {
+            Observable.just(
+                Data(
+                    error = original.error,
+                    loading = original.loading
+                )
+            )
+        }
+    }
 
 private fun combineErrors(
     firstError: Throwable?,
