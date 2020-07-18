@@ -1,8 +1,5 @@
-import com.novoda.gradle.release.PublishExtension
-
 plugins {
     id("com.android.library")
-    id("com.novoda.bintray-release")
     kotlin("android")
     id("kotlin-android-extensions")
 }
@@ -44,21 +41,4 @@ dependencies {
     testImplementation("org.robolectric:robolectric:4.3")
 }
 
-publishKotlinFix()
-
-configure<PublishExtension> {
-    val groupProjectID = "com.revolut.rxdata"
-    val artifactProjectID = "scheduler"
-    val publishVersionID = "1.1.1"
-
-    bintrayUser = BINTRAY_USER
-    bintrayKey = BINTRAY_KEY
-
-    userOrg = "revolut-mobile"
-    repoName = "RxData"
-    groupId = groupProjectID
-    artifactId = artifactProjectID
-    publishVersion = publishVersionID
-    desc = "RxData Experimental Scheduler with immediate same-thread dispatching"
-    website = "https://github.com/revolut-mobile/RxData"
-}
+apply(from = "$rootDir/gradle/publish_bintray.gradle.kts")
