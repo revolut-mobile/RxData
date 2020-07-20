@@ -1,13 +1,14 @@
 name: "dod: publish (bintray)"
 
 on:
-  push:
-    tags:
-      - 'dod*'
+  release:
+    types: [published]
 
 jobs:
   publish-bintray:
     runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/dod')
+
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-java@v1

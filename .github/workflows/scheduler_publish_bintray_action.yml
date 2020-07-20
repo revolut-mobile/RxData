@@ -1,13 +1,14 @@
 name: "scheduler: publish (bintray)"
 
 on:
-  push:
-    tags:
-      - 'scheduler*'
+  release:
+    types: [published]
 
 jobs:
   publish-bintray:
     runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/scheduler')
+
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-java@v1
