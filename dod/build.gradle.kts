@@ -1,44 +1,14 @@
-import Dependencies.jUnit
-import Dependencies.kotlinStdLib
-import Dependencies.mockitoKotlin
-import Dependencies.rxJava
-import com.novoda.gradle.release.PublishExtension
-
 plugins {
-    id("java-library")
     kotlin("jvm")
-    id("com.novoda.bintray-release")
 }
 
 dependencies {
     implementation(project(":core"))
-    implementation(kotlinStdLib)
-    implementation(rxJava)
+    implementation(Dependencies.kotlinStdLib)
+    implementation(Dependencies.rxJava)
 
-    testImplementation(jUnit)
-    testImplementation(mockitoKotlin)
+    testImplementation(Dependencies.jUnit)
+    testImplementation(Dependencies.mockitoKotlin)
 }
 
-repositories {
-    mavenCentral()
-}
-
-publishKotlinFix()
-
-configure<PublishExtension> {
-    val groupProjectID = "com.revolut.rxdata"
-    val artifactProjectID = "dod"
-    val publishVersionID = "1.2.5"
-
-    bintrayUser = BINTRAY_USER
-    bintrayKey = BINTRAY_KEY
-
-    userOrg = "revolut-mobile"
-    repoName = "RxData"
-    groupId = groupProjectID
-    artifactId = artifactProjectID
-    publishVersion = publishVersionID
-    desc = "RxData DataObservableDelegate"
-    website = "https://github.com/revolut-mobile/RxData"
-}
-
+apply(from = "$rootDir/gradle/publish_bintray.gradle.kts")
