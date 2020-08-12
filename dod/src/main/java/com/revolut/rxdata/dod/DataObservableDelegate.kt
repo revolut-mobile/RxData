@@ -1,6 +1,7 @@
 package com.revolut.rxdata.dod
 
 import com.revolut.rxdata.core.Data
+import io.reactivex.Completable
 import io.reactivex.Observable
 import io.reactivex.Observable.concat
 import io.reactivex.Observable.just
@@ -144,7 +145,13 @@ class DataObservableDelegate<Params : Any, Domain : Any> constructor(
         subject(params).onNext(Data(content = null))
     }
 
-    @Deprecated(message = "Don't use it as it could cause inconsistent state of the Delegate")
+    fun reload(params: Params): Completable =
+        fetchFromNetwork(cachedData = fromMemory(params), params = params).ignoreElements()
+
+    @Deprecated(
+        message = "Don't use it as it could cause inconsistent state of the Delegate",
+        replaceWith = ReplaceWith("notifyFromMemory { it == params }")
+    )
     fun notifyUpdated(params: Params, domain: Domain) {
         subject(params).onNext(Data(content = domain))
     }
