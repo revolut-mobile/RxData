@@ -447,7 +447,7 @@ class DataObservableDelegateTest {
     }
 
     @Test
-    fun `reload completable  notifies subscribers and updates storage and memory`() {
+    fun `reload completable notifies subscribers and updates storage and memory`() {
         whenever(fromNetwork.invoke(eq(params))).thenReturn(Single.fromCallable { domain })
 
         val testObserver =
