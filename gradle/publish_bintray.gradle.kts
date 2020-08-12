@@ -1,5 +1,5 @@
-import com.novoda.gradle.release.ReleasePlugin
 import com.novoda.gradle.release.PublishExtension
+import com.novoda.gradle.release.ReleasePlugin
 
 buildscript {
     repositories {
@@ -29,7 +29,7 @@ configure<PublishExtension> {
     userOrg = publishUserOrg
     repoName = publishRepoName
     groupId = publishGroupProjectId
-    artifactId = publishGroupProjectId
+    artifactId = publishArtifactProjectId
     publishVersion = publishProjectVersion
     desc = publishDescription
     website = publishWebsite
