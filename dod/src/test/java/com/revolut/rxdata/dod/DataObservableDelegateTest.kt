@@ -446,4 +446,31 @@ class DataObservableDelegateTest {
         verify(fromMemory, times(2)).invoke(eq(params))
     }
 
+    @Test
+    fun `reload completable  notifies subscribers and updates storage and memory`() {
+        whenever(fromNetwork.invoke(eq(params))).thenReturn(Single.fromCallable { domain })
+
+        val testObserver =
+            dataObservableDelegate.observe(params = params, forceReload = false).test()
+
+        ioScheduler.triggerActions()
+
+        testObserver.assertValues(
+            Data(null, null, true),
+            Data(domain, null, false)
+        )
+
+        val updatedDomain: Domain = "updated_domain"
+        whenever(fromNetwork.invoke(eq(params))).thenReturn(Single.fromCallable { updatedDomain })
+
+        dataObservableDelegate.reload(params = params).test()
+            .apply { ioScheduler.triggerActions() }.assertComplete()
+
+        testObserver.assertValueCount(3)
+        testObserver.assertValueAt(2, Data(updatedDomain, null, false))
+
+        verify(toMemory).invoke(params, updatedDomain)
+        verify(toStorage).invoke(params, updatedDomain)
+    }
+
 }
