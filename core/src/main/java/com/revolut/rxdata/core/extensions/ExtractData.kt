@@ -20,9 +20,17 @@ import io.reactivex.Observable
  *
  */
 
+@Deprecated(
+    replaceWith = ReplaceWith("extractContent(filterLoading = false, strictErrors = false)"),
+    message = "Dangerous method, ignores errors, replace with extractContent(filterLoading = false, strictErrors = false)"
+)
 fun <T> Observable<Data<T>>.extractData(): Observable<T> =
     filter { it.content != null }.map { it.content!! }
 
+@Deprecated(
+    message = "Use newer extractContent for content extraction, " +
+            "extracting errors shouldn't be done separately"
+)
 fun <T> Observable<Data<T>>.extractError(): Observable<Data<T>> {
     return flatMap {
         if (it.error != null && it.content == null) {
@@ -33,8 +41,18 @@ fun <T> Observable<Data<T>>.extractError(): Observable<Data<T>> {
     }
 }
 
+@Deprecated(
+    replaceWith = ReplaceWith("extractContent(filterLoading = false, strictErrors = false)"),
+    message = "Use newer extractContent for content extraction, " +
+            "its non strict behaviour extracts errors when content is null"
+)
 fun <T> Observable<Data<T>>.extractDataOrError(): Observable<T> = extractError().extractData()
 
+@Deprecated(
+    replaceWith = ReplaceWith("extractContent(filterLoading = false, strictErrors = true)"),
+    message = "Use newer extractContent for content extraction, " +
+            "its strict behaviour extracts errors even when content is present"
+)
 fun <T> Observable<Data<T>>.extractErrorStrict(): Observable<Data<T>> = flatMap {
     if (it.error != null) {
         Observable.error(it.error)
@@ -43,6 +61,12 @@ fun <T> Observable<Data<T>>.extractErrorStrict(): Observable<Data<T>> = flatMap 
     }
 }
 
+@Deprecated(
+    replaceWith = ReplaceWith("extractContent(filterLoading = true)"),
+    message = "Use newer extractContent for content extraction, " +
+            "filterLoading = true will filter out emits where loading is true. " +
+            "Pay attention to error extraction policy"
+)
 fun <T> Observable<Data<T>>.extractDataIfLoaded(): Observable<T> {
     return filter { it.content != null && !it.loading }
         .map { it.content!! }

@@ -21,7 +21,9 @@ class CombineDataKtTripleTest {
         cSubject = PublishSubject.create()
 
         testCombinedABC = combineLatestData(aSubject, bSubject, cSubject)
-            .mapData { (a, b, c) -> a + b + c }.extractData().test()
+            .mapData { (a, b, c) -> a + b + c }
+            .extractContent(filterLoading = false, strictErrors = false)
+            .test()
     }
 
     @Test
