@@ -157,4 +157,32 @@ class ExtractContentKtTest {
 
     //endregion
 
+    //region nullContentHandler
+
+    @Test
+    fun `Replace null content when error happened and consume that error`() {
+        val error = IllegalStateException()
+
+        Observable.just<Data<String>>(
+            Data(null, null, loading = true), //error consumed, value emitted downstream
+            Data(null, error, loading = false) // error not consumed, error is extracted
+        ).extractContent(
+            nullContentHandler = { loading, e ->
+                if (e is IllegalStateException && !loading) {
+                    "A"
+                } else {
+                    null
+                }
+            },
+            consumeErrors = { e, content ->
+                if (e is IllegalStateException && content == null) {
+                    null
+                } else {
+                    e
+                }
+            }).test().assertValues("A").assertNoErrors()
+    }
+
+    //endregion
+
 }
