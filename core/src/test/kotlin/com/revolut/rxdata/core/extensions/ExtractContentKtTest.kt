@@ -138,7 +138,7 @@ class ExtractContentKtTest {
 
     //endregion
 
-    //region nullContentHandler with consumeErrors
+    //region nullContentHandler
 
     @Test
     fun `Replace null content when error happened and consume that error`() {
@@ -162,6 +162,21 @@ class ExtractContentKtTest {
                     e
                 }
             }).test().assertValues("A").assertNoErrors()
+    }
+
+    @Test
+    fun `Replace null with default content when loading`() {
+        Observable.just(
+            Data(null, null, loading = true),
+            Data("B", null, loading = false)
+        ).extractContent(
+            nullContentHandler = { loading, _ ->
+                if (loading) {
+                    "A"
+                } else {
+                    null
+                }
+            }).test().assertValues("A", "B").assertNoErrors()
     }
 
     //endregion
