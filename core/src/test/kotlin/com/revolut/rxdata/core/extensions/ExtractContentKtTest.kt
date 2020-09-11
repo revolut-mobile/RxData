@@ -6,7 +6,7 @@ import org.junit.Test
 
 class ExtractContentKtTest {
 
-    //region default params strictErrors = true
+    //region default params
 
     @Test
     fun `Null content emits are skipped`() {
@@ -44,7 +44,7 @@ class ExtractContentKtTest {
 
     //endregion
 
-    //region filterWhileLoading | strictErrors = true
+    //region filterWhileLoading
 
     @Test
     fun `Loading items are skipped`() {
@@ -74,41 +74,6 @@ class ExtractContentKtTest {
         ).filterWhileLoading().extractContent().test().assertNoValues().assertError(error)
     }
 
-    //endregion
-
-    //region strictErrors = false
-
-    @Test
-    fun `Errors with content do not terminate the stream`() {
-        val error = IllegalStateException()
-
-        Observable.just(
-            Data("A", error, loading = true)
-        ).extractContent(strictErrors = false).test().assertValues("A")
-    }
-
-    @Test
-    fun `Errors without content still terminate the stream`() {
-        val error = IllegalStateException()
-
-        Observable.just(
-            Data(null, error, loading = true)
-        ).extractContent(strictErrors = false).test().assertError(error)
-    }
-
-    //endregion
-
-    //region filterWhileLoading | strictErrors = false
-
-    @Test
-    fun `Error with content is not extracted`() {
-        val error = IllegalStateException()
-
-        Observable.just(
-            Data("A", null, loading = true),
-            Data("B", error, loading = false)
-        ).filterWhileLoading().extractContent(strictErrors = false).test().assertValues("B")
-    }
 
     @Test
     fun `Error without content is extracted and terminates the stream`() {
@@ -117,16 +82,32 @@ class ExtractContentKtTest {
         Observable.just(
             Data("A", null, loading = true),
             Data(null, error, loading = false)
-        ).filterWhileLoading().extractContent(strictErrors = false).test()
+        ).filterWhileLoading().extractContent().test()
             .assertNoValues().assertError(error)
     }
 
+
     //endregion
 
-    //region errors consumer
+    //region consumeErrors conditionally
 
     @Test
-    fun `When error is consumed then downstream receives a value`() {
+    fun `Consume errors while loading`() {
+        val error = IllegalStateException()
+
+        Observable.just(
+            Data("A", error, loading = true)
+        ).extractContent(consumeErrors = { e, content ->
+            if (content != null) {
+                null
+            } else {
+                e
+            }
+        }).test().assertValues("A")
+    }
+
+    @Test
+    fun `Consume specific errors`() {
         val error = IllegalStateException()
 
         Observable.just(
@@ -140,7 +121,7 @@ class ExtractContentKtTest {
     }
 
     @Test
-    fun `Conditional error consuming`() {
+    fun `Non-consumed errors`() {
         val error = IllegalStateException()
 
         Observable.just(
@@ -157,7 +138,7 @@ class ExtractContentKtTest {
 
     //endregion
 
-    //region nullContentHandler
+    //region nullContentHandler with consumeErrors
 
     @Test
     fun `Replace null content when error happened and consume that error`() {

@@ -6,11 +6,6 @@ import io.reactivex.Observable
 
 fun <T> Observable<Data<T>>.extractContent(
     /**
-     * If false, error will terminate the stream only if content isn't present,
-     * if true error will terminate the stream regardless of the content
-     */
-    strictErrors: Boolean = true,
-    /**
      * Allows to substitute null content with some object by provided loading and error.
      */
     nullContentHandler: (loading: Boolean, error: Throwable?) -> T? = { _, _ -> null },
@@ -24,7 +19,7 @@ fun <T> Observable<Data<T>>.extractContent(
         consumeErrors(error, it.content)
     }
 
-    if (error != null && (strictErrors || it.content == null)) {
+    if (error != null) {
         throw error
     }
 
