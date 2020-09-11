@@ -42,14 +42,14 @@ fun <T> Observable<Data<T>>.extractError(): Observable<Data<T>> {
 }
 
 @Deprecated(
-    replaceWith = ReplaceWith("extractContent(filterLoading = false, strictErrors = false)"),
+    replaceWith = ReplaceWith("extractContent(strictErrors = false)"),
     message = "Use newer extractContent for content extraction, " +
             "its non strict behaviour extracts errors when content is null"
 )
 fun <T> Observable<Data<T>>.extractDataOrError(): Observable<T> = extractError().extractData()
 
 @Deprecated(
-    replaceWith = ReplaceWith("extractContent(filterLoading = false, strictErrors = true)"),
+    replaceWith = ReplaceWith("extractContent(strictErrors = true)"),
     message = "Use newer extractContent for content extraction, " +
             "its strict behaviour extracts errors even when content is present"
 )
@@ -62,10 +62,10 @@ fun <T> Observable<Data<T>>.extractErrorStrict(): Observable<Data<T>> = flatMap 
 }
 
 @Deprecated(
-    replaceWith = ReplaceWith("extractContent(filterLoading = true)"),
+    replaceWith = ReplaceWith("filterWhileLoading().extractContent()"),
     message = "Use newer extractContent for content extraction, " +
-            "filterLoading = true will filter out emits where loading is true. " +
-            "Pay attention to error extraction policy"
+            "filterWhileLoading will filter out emits where loading is true. " +
+            "Pay attention to error extraction behaviour changes in ExtractDataKtTest"
 )
 fun <T> Observable<Data<T>>.extractDataIfLoaded(): Observable<T> {
     return filter { it.content != null && !it.loading }

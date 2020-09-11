@@ -6,7 +6,7 @@ import org.junit.Test
 
 class ExtractContentKtTest {
 
-    //region default params: filterLoading = false | strictErrors = true
+    //region default params strictErrors = true
 
     @Test
     fun `Null content emits are skipped`() {
@@ -21,7 +21,7 @@ class ExtractContentKtTest {
         Observable.just(
             Data("A", null, loading = true),
             Data("B", null, loading = false)
-        ).extractContent(filterLoading = false).test().assertValues("A", "B")
+        ).extractContent().test().assertValues("A", "B")
     }
 
     @Test
@@ -44,14 +44,14 @@ class ExtractContentKtTest {
 
     //endregion
 
-    //region filterLoading = true | strictErrors = true
+    //region filterWhileLoading | strictErrors = true
 
     @Test
     fun `Loading items are skipped`() {
         Observable.just(
             Data("A", null, loading = true),
             Data("B", null, loading = false)
-        ).extractContent(filterLoading = true).test().assertValues("B")
+        ).filterWhileLoading().extractContent().test().assertValues("B")
     }
 
     @Test
@@ -61,7 +61,7 @@ class ExtractContentKtTest {
         Observable.just(
             Data("A", error, loading = true),
             Data("B", null, loading = false)
-        ).extractContent(filterLoading = true).test().assertValues("B")
+        ).filterWhileLoading().extractContent().test().assertValues("B")
     }
 
     @Test
@@ -71,12 +71,12 @@ class ExtractContentKtTest {
         Observable.just(
             Data("A", null, loading = true),
             Data("A", error, loading = false)
-        ).extractContent(filterLoading = true).test().assertNoValues().assertError(error)
+        ).filterWhileLoading().extractContent().test().assertNoValues().assertError(error)
     }
 
     //endregion
 
-    //region filterLoading = false | strictErrors = false
+    //region strictErrors = false
 
     @Test
     fun `Errors with content do not terminate the stream`() {
@@ -98,7 +98,7 @@ class ExtractContentKtTest {
 
     //endregion
 
-    //region filterLoading = true | strictErrors = false
+    //region filterWhileLoading | strictErrors = false
 
     @Test
     fun `Error with content is not extracted`() {
@@ -107,7 +107,7 @@ class ExtractContentKtTest {
         Observable.just(
             Data("A", null, loading = true),
             Data("B", error, loading = false)
-        ).extractContent(filterLoading = true, strictErrors = false).test().assertValues("B")
+        ).filterWhileLoading().extractContent(strictErrors = false).test().assertValues("B")
     }
 
     @Test
@@ -117,7 +117,7 @@ class ExtractContentKtTest {
         Observable.just(
             Data("A", null, loading = true),
             Data(null, error, loading = false)
-        ).extractContent(filterLoading = true, strictErrors = false).test()
+        ).filterWhileLoading().extractContent(strictErrors = false).test()
             .assertNoValues().assertError(error)
     }
 
