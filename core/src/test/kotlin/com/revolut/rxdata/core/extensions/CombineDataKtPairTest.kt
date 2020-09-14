@@ -19,7 +19,9 @@ class CombineDataKtPairTest {
         bSubject = PublishSubject.create()
 
         testCombinedAB = combineLatestData(aSubject, bSubject)
-            .mapData { (a, b) -> a + b }.extractData().test()
+            .mapData { (a, b) -> a + b }
+            .extractContent()
+            .test()
     }
 
     @Test
