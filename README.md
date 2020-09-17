@@ -9,12 +9,15 @@ RxData is Android mobile library for building reactive data flow in Android appl
 Gradle is the only supported build configuration - please add the below line to your build.gradle:
 
 ```
-implementation 'com.revolut.rxdata:dod:1.0'
+implementation 'com.revolut.rxdata:dod:1.2.5'
+implementation 'com.revolut.rxdata:core:1.2.8'
 ```
+
 
 ## Examples
 
 You can find several examples of how RxData is used in Revolut application [in this Revolut Tech article.][1]
+Also, fully documentation TBD soon [here.][3]
 
 Here is the exemplary code that get you started in your application:
 
@@ -58,3 +61,4 @@ When sharing the code, please make sure that your contribution follows the exist
 
  [1]: https://medium.com/revolut/reactive-data-flow-in-revolut-android-app-30a49fa1572e
  [2]: https://github.com/revolut-mobile/RxData/pulls
+ [3]: https://github.com/ReactiveX/RxJava/wiki
