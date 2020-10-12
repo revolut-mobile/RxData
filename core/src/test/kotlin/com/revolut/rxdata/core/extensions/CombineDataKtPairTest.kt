@@ -20,7 +20,7 @@ class CombineDataKtPairTest {
 
         testCombinedAB = combineLatestData(aSubject, bSubject)
             .mapData { (a, b) -> a + b }
-            .extractContent()
+            .extractContent<String, String>()
             .test()
     }
 

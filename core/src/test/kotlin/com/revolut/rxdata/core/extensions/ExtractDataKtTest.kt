@@ -20,7 +20,7 @@ class ExtractDataKtTest {
         Observable.just(
             Data("A", null, loading = true),
             Data("B", null, loading = false)
-        ).filterWhileLoading().extractContent().test().assertValues("B")
+        ).filterWhileLoading().extractContent<String, String>().test().assertValues("B")
     }
 
     @Test
@@ -39,7 +39,7 @@ class ExtractDataKtTest {
         Observable.just(
             Data("A", error, loading = true),
             Data("B", null, loading = false)
-        ).filterWhileLoading().extractContent().test().assertValues("B")
+        ).filterWhileLoading().extractContent<String, String>().test().assertValues("B")
     }
 
     @Test
@@ -58,7 +58,8 @@ class ExtractDataKtTest {
         Observable.just(
             Data("A", null, loading = true),
             Data("A", error, loading = false)
-        ).filterWhileLoading().extractContent().test().assertNoValues().assertError(error)
+        ).filterWhileLoading().extractContent<String, String>().test().assertNoValues()
+            .assertError(error)
     }
 
     @Test
@@ -76,7 +77,7 @@ class ExtractDataKtTest {
         Observable.just(
             Data("A", null, loading = true),
             Data("B", error, loading = false)
-        ).filterWhileLoading().extractContent().test().assertError(error)
+        ).filterWhileLoading().extractContent<String, String>().test().assertError(error)
     }
 
     @Test
@@ -94,7 +95,7 @@ class ExtractDataKtTest {
         Observable.just(
             Data("A", null, loading = true),
             Data(null, error, loading = false)
-        ).filterWhileLoading().extractContent().test()
+        ).filterWhileLoading().extractContent<String, String>().test()
             .assertNoValues().assertError(error)
     }
 }

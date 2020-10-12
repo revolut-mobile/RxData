@@ -13,7 +13,7 @@ class ExtractContentKtTest {
         Observable.just(
             Data(null, null, loading = true),
             Data("A", null, loading = false)
-        ).extractContent().test().assertValues("A")
+        ).extractContent<String, String>().test().assertValues("A")
     }
 
     @Test
@@ -21,7 +21,7 @@ class ExtractContentKtTest {
         Observable.just(
             Data("A", null, loading = true),
             Data("B", null, loading = false)
-        ).extractContent().test().assertValues("A", "B")
+        ).extractContent<String, String>().test().assertValues("A", "B")
     }
 
     @Test
@@ -30,7 +30,7 @@ class ExtractContentKtTest {
 
         Observable.just(
             Data("A", error, loading = true)
-        ).extractContent().test().assertError(error)
+        ).extractContent<String, String>().test().assertError(error)
     }
 
     @Test
@@ -38,8 +38,8 @@ class ExtractContentKtTest {
         val error = IllegalStateException()
 
         Observable.just(
-            Data(null, error, loading = true)
-        ).extractContent().test().assertError(error)
+            Data<String>(null, error, loading = true)
+        ).extractContent<String, String>().test().assertError(error)
     }
 
     //endregion
@@ -51,7 +51,7 @@ class ExtractContentKtTest {
         Observable.just(
             Data("A", null, loading = true),
             Data("B", null, loading = false)
-        ).filterWhileLoading().extractContent().test().assertValues("B")
+        ).filterWhileLoading().extractContent<String, String>().test().assertValues("B")
     }
 
     @Test
@@ -61,7 +61,7 @@ class ExtractContentKtTest {
         Observable.just(
             Data("A", error, loading = true),
             Data("B", null, loading = false)
-        ).filterWhileLoading().extractContent().test().assertValues("B")
+        ).filterWhileLoading().extractContent<String, String>().test().assertValues("B")
     }
 
     @Test
@@ -71,7 +71,8 @@ class ExtractContentKtTest {
         Observable.just(
             Data("A", null, loading = true),
             Data("A", error, loading = false)
-        ).filterWhileLoading().extractContent().test().assertNoValues().assertError(error)
+        ).filterWhileLoading().extractContent<String, String>().test().assertNoValues()
+            .assertError(error)
     }
 
 
@@ -82,7 +83,7 @@ class ExtractContentKtTest {
         Observable.just(
             Data("A", null, loading = true),
             Data(null, error, loading = false)
-        ).filterWhileLoading().extractContent().test()
+        ).filterWhileLoading().extractContent<String, String>().test()
             .assertNoValues().assertError(error)
     }
 
@@ -97,7 +98,7 @@ class ExtractContentKtTest {
 
         Observable.just(
             Data("A", error, loading = true)
-        ).extractContent(consumeErrors = { e, content ->
+        ).extractContent<String, String>(consumeErrors = { e, content ->
             if (content != null) {
                 null
             } else {
@@ -112,7 +113,7 @@ class ExtractContentKtTest {
 
         Observable.just(
             Data("A", error, loading = true)
-        ).extractContent(consumeErrors = { e, _ ->
+        ).extractContent<String, String>(consumeErrors = { e, _ ->
             when (e) {
                 is IllegalStateException -> null
                 else -> e
@@ -127,7 +128,7 @@ class ExtractContentKtTest {
         Observable.just(
             Data("A", error, loading = true), //error consumed, value emitted downstream
             Data("B", error, loading = true) // error not consumed, error is extracted
-        ).extractContent(consumeErrors = { e, content ->
+        ).extractContent<String, String>(consumeErrors = { e, content ->
             if (e is IllegalStateException && content == "A") {
                 null
             } else {
@@ -179,6 +180,73 @@ class ExtractContentKtTest {
             }).test().assertValues("A", "B").assertNoErrors()
     }
 
+    //endregion
+
+    //region Content Transformation
+    @Test
+    fun `contentMapper test`() {
+        val knownError = IllegalStateException()
+        val unknownError = IllegalArgumentException()
+
+
+        Observable.just(
+            Data(null, null, loading = true),       // Null content Loading
+            Data(null, knownError, loading = true), // Known Error while null content
+            Data(3, knownError, loading = true),    // Known Error with content
+            Data(3, null, loading = true),          // Content Loading
+            Data(3, null, loading = false),         // Loaded Data
+            Data(3, unknownError, loading = false)  // Error Happened
+        ).extractContent<Int, Int>()
+
+
+        Observable.just(
+            Data(null, null, loading = true),       // Null content Loading
+            Data(null, knownError, loading = true), // Known Error while null content
+            Data(3, knownError, loading = true),    // Known Error with content
+            Data(3, null, loading = true),          // Content Loading
+            Data(3, null, loading = false),         // Loaded Data
+            Data(3, unknownError, loading = false)  // Error Happened
+        ).extractContent(
+            consumeErrors = { error, content ->
+                error.takeUnless { it == knownError }
+            },
+            contentMapper = { content, loading, consumedError ->
+                listOfNotNull(
+                    content,
+                    "Loading".takeIf { loading },
+                    "Error".takeIf { consumedError != null }).joinToString(separator = " : ")
+            },
+            nullContentHandler = { loading, consumedError ->
+                listOfNotNull(
+                    "Null",
+                    "Loading".takeIf { loading },
+                    "Error".takeIf { consumedError != null }).joinToString(separator = " : ")
+            }
+        ).test()
+            .assertValues(
+                "Null : Loading",           //produced by nullContentHandler since content is null
+                "Null : Loading : Error",   //produced by nullContentHandler since content is null
+                "3 : Loading : Error",      //produced by contentMapper
+                "3 : Loading",              //produced by contentMapper
+                "3"                         //produced by contentMapper
+            )
+            .assertError(unknownError)      //non-consumed unknownError crashed the stream
+    }
+
+
+    @Test
+    fun `contentMapper type exception`() {
+        val extractContent: Observable<Any> = Observable.just(
+            Data(5, null, loading = false)
+        ).extractContent(
+            contentMapper = { content, loading, error ->
+                content.toString()
+            },
+            nullContentHandler = { loading, consumedError ->
+                Unit
+            }
+        )
+    }
     //endregion
 
 }

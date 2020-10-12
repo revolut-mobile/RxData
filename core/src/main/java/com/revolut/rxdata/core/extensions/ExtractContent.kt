@@ -4,17 +4,20 @@ import com.revolut.rxdata.core.Data
 import io.reactivex.Observable
 
 
-fun <T> Observable<Data<T>>.extractContent(
+fun <T, R> Observable<Data<T>>.extractContent(
+    contentMapper: (content: T, loading: Boolean, consumedError: Throwable?) -> R = { content, _, _ -> content as R },
     /**
      * Allows to substitute null content with some object by provided loading and error.
      */
-    nullContentHandler: (loading: Boolean, error: Throwable?) -> T? = { _, _ -> null },
+    nullContentHandler: (loading: Boolean, consumedError: Throwable?) -> R? = { _, _ -> null },
     /**
      * Original error will be replaced with the one returned by this lambda.
      * Normal usage is to return null for all known errors so that they don't terminate the stream.
      */
     consumeErrors: (error: Throwable, content: T?) -> Throwable? = { e, _ -> e }
-): Observable<T> = map {
+): Observable<R> = map {
+    val consumedError = it.error
+
     val error = it.error?.let { error ->
         consumeErrors(error, it.content)
     }
@@ -23,10 +26,14 @@ fun <T> Observable<Data<T>>.extractContent(
         throw error
     }
 
-    if (it.content == null) {
-        it.copy(content = nullContentHandler(it.loading, it.error))
+    val content: R? = if (it.content == null) {
+        nullContentHandler(it.loading, consumedError)
     } else {
-        it
+        contentMapper(it.content, it.loading, consumedError)
     }
+
+    Data<R>(
+        content = content
+    )
 }.filter { it.content != null }.map { it.content }
 
