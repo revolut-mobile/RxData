@@ -22,7 +22,7 @@ class CombineDataKtTripleTest {
 
         testCombinedABC = combineLatestData(aSubject, bSubject, cSubject)
             .mapData { (a, b, c) -> a + b + c }
-            .extractContent<String, String>()
+            .extractContent()
             .test()
     }
 
