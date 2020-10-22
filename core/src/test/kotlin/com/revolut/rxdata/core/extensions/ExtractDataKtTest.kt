@@ -58,7 +58,8 @@ class ExtractDataKtTest {
         Observable.just(
             Data("A", null, loading = true),
             Data("A", error, loading = false)
-        ).filterWhileLoading().extractContent().test().assertNoValues().assertError(error)
+        ).filterWhileLoading().extractContent().test().assertNoValues()
+            .assertError(error)
     }
 
     @Test

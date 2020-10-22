@@ -38,7 +38,7 @@ class ExtractContentKtTest {
         val error = IllegalStateException()
 
         Observable.just(
-            Data(null, error, loading = true)
+            Data<String>(null, error, loading = true)
         ).extractContent().test().assertError(error)
     }
 
@@ -71,7 +71,8 @@ class ExtractContentKtTest {
         Observable.just(
             Data("A", null, loading = true),
             Data("A", error, loading = false)
-        ).filterWhileLoading().extractContent().test().assertNoValues().assertError(error)
+        ).filterWhileLoading().extractContent().test().assertNoValues()
+            .assertError(error)
     }
 
 
@@ -177,6 +178,49 @@ class ExtractContentKtTest {
                     null
                 }
             }).test().assertValues("A", "B").assertNoErrors()
+    }
+
+    //endregion
+
+    //region Content Transformation
+    @Test
+    fun `contentMapper test`() {
+        val knownError = IllegalStateException()
+        val unknownError = IllegalArgumentException()
+
+
+        Observable.just(
+            Data(null, null, loading = true),       // Null content Loading
+            Data(null, knownError, loading = true), // Known Error while null content
+            Data(3, knownError, loading = true),    // Known Error with content
+            Data(3, null, loading = true),          // Content Loading
+            Data(3, null, loading = false),         // Loaded Data
+            Data(3, unknownError, loading = false)  // Error Happened
+        ).extractContent(
+            consumeErrors = { error, content ->
+                error.takeUnless { it == knownError }
+            },
+            contentMapper = { content, loading, consumedError ->
+                listOfNotNull(
+                    content,
+                    "Loading".takeIf { loading },
+                    "Error".takeIf { consumedError != null }).joinToString(separator = " : ")
+            },
+            nullContentHandler = { loading, consumedError ->
+                listOfNotNull(
+                    "Null",
+                    "Loading".takeIf { loading },
+                    "Error".takeIf { consumedError != null }).joinToString(separator = " : ")
+            }
+        ).test()
+            .assertValues(
+                "Null : Loading",           //produced by nullContentHandler since content is null
+                "Null : Loading : Error",   //produced by nullContentHandler since content is null
+                "3 : Loading : Error",      //produced by contentMapper
+                "3 : Loading",              //produced by contentMapper
+                "3"                         //produced by contentMapper
+            )
+            .assertError(unknownError)      //non-consumed unknownError crashed the stream
     }
 
     //endregion
