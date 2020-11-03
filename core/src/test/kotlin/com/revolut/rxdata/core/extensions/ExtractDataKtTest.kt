@@ -98,6 +98,88 @@ class ExtractDataKtTest {
         ).filterWhileLoading().extractContent().test()
             .assertNoValues().assertError(error)
     }
+
+    @Test
+    fun `Extract data swallow errors when content present`() {
+        val error = IllegalStateException()
+
+        //Deprecated behaviour:
+
+        Observable.just(
+            Data("A", null, loading = true),
+            Data("B", error, loading = false)
+        ).extractData().test().assertValues("A", "B")
+
+        //New behaviour:
+        Observable.just(
+            Data("A", null, loading = true),
+            Data("B", error, loading = false)
+        ).extractContent(consumeErrors = { _, _ -> null }).test().assertValues("A", "B")
+    }
+
+    @Test
+    fun `Extract data swallow errors when content not present`() {
+        val error = IllegalStateException()
+
+        //Deprecated behaviour:
+
+        Observable.just(
+            Data("A", null, loading = true),
+            Data(null, error, loading = false)
+        ).extractData().test()
+            .assertValues("A").assertNoErrors()
+
+        //New behaviour:
+        Observable.just(
+            Data("A", null, loading = true),
+            Data(null, error, loading = false)
+        ).extractContent(consumeErrors = { _, _ -> null }).test()
+            .assertValues("A").assertNoErrors()
+    }
+
+
+    @Test
+    fun `extractDataOrError swallows the error if content is present`() {
+        val error = IllegalStateException()
+
+        //Deprecated behaviour:
+
+        Observable.just(
+            Data("A", null, loading = true),
+            Data("B", error, loading = false)
+        ).extractDataOrError().test()
+            .assertValues("A", "B")
+
+        //New behaviour:
+        Observable.just(
+            Data("A", null, loading = true),
+            Data("B", error, loading = false)
+        ).extractContent(consumeErrors = { error, content -> error.takeIf { content == null } })
+            .test().assertValues("A", "B")
+    }
+
+
+    @Test
+    fun `extractDataOrError terminates the stream if content is not present`() {
+        val error = IllegalStateException()
+
+        //Deprecated behaviour:
+
+        Observable.just(
+            Data("A", null, loading = true),
+            Data(null, error, loading = false)
+        ).extractDataOrError().test()
+            .assertValues("A").assertError(error)
+
+        //New behaviour:
+        Observable.just(
+            Data("A", null, loading = true),
+            Data(null, error, loading = false)
+        ).extractContent(consumeErrors = { error, content -> error.takeIf { content == null } })
+            .test().assertValues("A").assertError(error)
+    }
+
+
 }
 
 

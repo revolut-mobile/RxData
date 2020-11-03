@@ -21,15 +21,14 @@ import io.reactivex.Observable
  */
 
 @Deprecated(
-    replaceWith = ReplaceWith("extractContent(filterLoading = false, strictErrors = false)"),
+    replaceWith = ReplaceWith("extractContent(consumeErrors = { _, _ -> null })"),
     message = "Dangerous method, ignores errors, replace with extractContent(filterLoading = false, strictErrors = false)"
 )
 fun <T> Observable<Data<T>>.extractData(): Observable<T> =
     filter { it.content != null }.map { it.content!! }
 
 @Deprecated(
-    message = "Use newer extractContent for content extraction, " +
-            "extracting errors shouldn't be done separately"
+    message = "Use newer extractContent for content extraction, extracting errors shouldn't be done separately"
 )
 fun <T> Observable<Data<T>>.extractError(): Observable<Data<T>> {
     return flatMap {
@@ -42,16 +41,13 @@ fun <T> Observable<Data<T>>.extractError(): Observable<Data<T>> {
 }
 
 @Deprecated(
-    replaceWith = ReplaceWith("extractContent(strictErrors = false)"),
-    message = "Use newer extractContent for content extraction, " +
-            "its non strict behaviour extracts errors when content is null"
+    replaceWith = ReplaceWith("extractContent(consumeErrors = { error, content -> error.takeIf { content == null } })"),
+    message = "Use newer extractContent for content extraction"
 )
 fun <T> Observable<Data<T>>.extractDataOrError(): Observable<T> = extractError().extractData()
 
 @Deprecated(
-    replaceWith = ReplaceWith("extractContent(strictErrors = true)"),
-    message = "Use newer extractContent for content extraction, " +
-            "its strict behaviour extracts errors even when content is present"
+    message = "Use newer extractContent for content extraction"
 )
 fun <T> Observable<Data<T>>.extractErrorStrict(): Observable<Data<T>> = flatMap {
     if (it.error != null) {
