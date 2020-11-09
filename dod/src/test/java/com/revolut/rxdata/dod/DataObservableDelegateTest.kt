@@ -2,6 +2,7 @@ package com.revolut.rxdata.dod
 
 import com.nhaarman.mockito_kotlin.*
 import com.revolut.rxdata.core.Data
+import com.revolut.rxdata.core.extensions.extractContent
 import io.reactivex.Single
 import io.reactivex.plugins.RxJavaPlugins
 import io.reactivex.schedulers.TestScheduler
@@ -125,6 +126,48 @@ class DataObservableDelegateTest {
         verifyNoMoreInteractions(toMemory)
         verify(fromStorage, only()).invoke(eq(params))
         verify(toStorage, only()).invoke(eq(params), eq(domain))
+    }
+
+    @Test
+    fun `WHEN unsubscribed from network reload THEN data is still saved to storage and memory`() {
+        val delayedNetwork = Single.fromCallable { domain }
+            .delay(1, TimeUnit.SECONDS, computationScheduler)
+
+        whenever(fromNetwork.invoke(eq(params))).thenReturn(delayedNetwork)
+        whenever(fromStorage.invoke(eq(params))).thenReturn(cachedDomain)
+
+        val testObserver =
+            dataObservableDelegate.observe(params = params, forceReload = false)
+                .extractContent()
+                .firstOrError() // gets storage and unsubscribes before network emits
+                .test()
+
+        ioScheduler.triggerActions()
+
+        testObserver.assertValueCount(1)
+        testObserver.assertValueAt(0, cachedDomain)
+        testObserver.assertComplete()
+
+        verify(toMemory).invoke(eq(params), eq(cachedDomain)) //storage domain moved to memory
+        verify(toMemory, never()).invoke(
+            eq(params),
+            eq(domain)
+        ) //network domain not moved to memory yet
+
+        computationScheduler.advanceTimeBy(
+            1,
+            TimeUnit.SECONDS
+        ) //network finishes after observer unsubscribed
+
+        verify(toMemory, atLeastOnce()).invoke(
+            eq(params),
+            eq(domain)
+        ) //network domain moved to memory
+        verify(toStorage, atLeastOnce()).invoke(
+            eq(params),
+            eq(domain)
+        ) //network domain moved to storage
+
     }
 
     @Test

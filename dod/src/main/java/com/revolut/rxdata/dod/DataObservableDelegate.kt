@@ -48,7 +48,14 @@ class DataObservableDelegate<Params : Any, Domain : Any> constructor(
 
     private val subjectsMap = ConcurrentHashMap<Params, Subject<Data<Domain>>>()
     private val sharedRequest: SharedSingleRequest<Params, Domain> =
-        SharedSingleRequest { params -> this.fromNetwork(params) }
+        SharedSingleRequest { params ->
+            this.fromNetwork(params)
+                .doOnSuccess { domain ->
+                    toMemory(params, domain)
+                    toStorage(params, domain)
+                }
+
+        }
 
     /**
      * Requests data from network and subscribes to updates
@@ -70,9 +77,11 @@ class DataObservableDelegate<Params : Any, Domain : Any> constructor(
                         val data = storageData.copy(loading = true)
                         subject.onNext(data)
 
+                        fetchFromNetwork(storageData.content, params).subscribe()
+
                         concat(
                             just(data),
-                            fetchFromNetwork(storageData.content, params).mergeWith(subject)
+                            subject
                         )
                     } else {
                         concat(
@@ -85,9 +94,11 @@ class DataObservableDelegate<Params : Any, Domain : Any> constructor(
                     val data = Data(content = null, loading = true)
                     subject.onNext(data)
 
+                    fetchFromNetwork(null, params).subscribe()
+
                     concat(
                         just(data),
-                        fetchFromNetwork(null, params).mergeWith(subject)
+                        subject
                     )
                 }
                 .startWith(Data(memCache, loading = loading))
@@ -172,9 +183,6 @@ class DataObservableDelegate<Params : Any, Domain : Any> constructor(
     private fun fetchFromNetwork(cachedData: Domain?, params: Params): Observable<Data<Domain>> =
         sharedRequest.getOrLoad(params)
             .map { domain ->
-                toMemory(params, domain)
-                toStorage(params, domain)
-
                 val data = Data(content = domain)
                 subject(params).onNext(data)
                 data

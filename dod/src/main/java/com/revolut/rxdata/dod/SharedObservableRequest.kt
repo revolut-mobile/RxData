@@ -41,7 +41,7 @@ internal class SharedObservableRequest<Params, Result>(
                             synchronized(requests) { requests.remove(params) }
                         }
                         .replay(1)
-                        .refCount()
+                        .autoConnect()
 
                     requests[params] = newShared
                     return@defer newShared
