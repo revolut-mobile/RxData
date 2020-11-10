@@ -3,6 +3,7 @@ package com.revolut.rxdata.dod
 import io.reactivex.Observable
 import io.reactivex.schedulers.Schedulers
 import java.util.*
+import java.util.concurrent.TimeUnit
 
 /*
  * Copyright (C) 2019 Revolut
@@ -41,7 +42,7 @@ internal class SharedObservableRequest<Params, Result>(
                             synchronized(requests) { requests.remove(params) }
                         }
                         .replay(1)
-                        .autoConnect()
+                        .refCount(1, TimeUnit.MINUTES, Schedulers.io())
 
                     requests[params] = newShared
                     return@defer newShared

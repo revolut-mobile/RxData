@@ -7,6 +7,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Before
 import org.junit.Test
+import java.util.concurrent.TimeUnit
 
 /*
  * Copyright (C) 2019 Revolut
@@ -104,6 +105,53 @@ class SharedObservableRequestTest {
 
         assertEquals(2, loadCounter)
         assertNotEquals(result1, result2)
+    }
+
+    @Test
+    fun `when downstream is disposed SharedObservable is disposed after 1 minute`() {
+        var disposed = false
+
+        val testObservable = Observable.just(Any()).delay(2, TimeUnit.MINUTES, ioScheduler)
+            .doOnDispose {
+                disposed = true
+            }
+
+        val request = SharedObservableRequest<Any, Any>(
+            load = { testObservable }
+        )
+
+        val test = request.getOrLoad(Any())
+            .test()
+
+        ioScheduler.advanceTimeBy(30, TimeUnit.SECONDS)
+
+        test.dispose()
+        assertEquals(false, disposed)
+
+
+        ioScheduler.advanceTimeBy(1, TimeUnit.MINUTES)
+        assertEquals(true, disposed)
+        test.assertNoValues().assertNoErrors()
+    }
+
+    @Test
+    fun `when resubscribed within 1 minute then result is delivered`() {
+        val testObservable = Observable.just("1").delay(2, TimeUnit.MINUTES, ioScheduler)
+
+        val request = SharedObservableRequest<String, String>(load = { testObservable })
+
+        val test = request.getOrLoad("1").test()
+        ioScheduler.advanceTimeBy(30, TimeUnit.SECONDS)
+
+        test.assertNoValues().assertNoErrors()
+        test.dispose()
+
+        ioScheduler.advanceTimeBy(30, TimeUnit.SECONDS)
+
+        val test2 = request.getOrLoad("1").test()
+
+        ioScheduler.advanceTimeBy(60, TimeUnit.SECONDS)
+        test2.assertValue("1").assertComplete()
     }
 
     private fun createCache(): SharedObservableRequest<Any, Any> {
