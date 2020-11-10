@@ -171,6 +171,58 @@ class DataObservableDelegateTest {
     }
 
     @Test
+    fun `WHEN unsubscribed from network stream AND error occurs THEN next observe will reload`() {
+        val delayedNetwork = Single.fromCallable<Domain> { throw  backendException }
+            .delay(1, TimeUnit.SECONDS, computationScheduler)
+
+        whenever(fromNetwork.invoke(eq(params))).thenReturn(delayedNetwork)
+        whenever(fromStorage.invoke(eq(params))).thenReturn(cachedDomain)
+
+        val testObserver =
+            dataObservableDelegate.observe(params = params, forceReload = false)
+                .extractContent()
+                .firstOrError() // gets storage and unsubscribes before network emits
+                .test()
+
+        ioScheduler.triggerActions()
+
+        verify(toMemory).invoke(eq(params), eq(cachedDomain)) //storage domain moved to memory
+        whenever(fromMemory.invoke(eq(params))).thenReturn(cachedDomain)
+
+        testObserver.assertValueCount(1)
+        testObserver.assertValueAt(0, cachedDomain)
+        testObserver.assertComplete()
+
+        computationScheduler.advanceTimeBy(
+            1,
+            TimeUnit.SECONDS
+        ) //network finishes with error after observer unsubscribed
+
+        verifyNoMoreInteractions(toMemory)
+        verifyNoMoreInteractions(toStorage)
+
+        whenever(fromNetwork.invoke(eq(params))).thenReturn(Single.fromCallable { domain })
+
+        //observing with forceReload = false expecting to trigger network call again
+        dataObservableDelegate.observe(params = params, forceReload = false)
+            .extractContent()
+            .firstOrError() // gets storage and unsubscribes before network emits
+            .test()
+
+        ioScheduler.triggerActions()
+
+        verify(toMemory, atLeastOnce()).invoke(
+            eq(params),
+            eq(domain)
+        ) //network domain moved to memory
+        verify(toStorage, atLeastOnce()).invoke(
+            eq(params),
+            eq(domain)
+        ) //network domain moved to storage
+
+    }
+
+    @Test
     fun `FORCE observing data when memory cache IS NOT EMPTY`() {
         whenever(fromNetwork.invoke(eq(params))).thenReturn(Single.fromCallable { domain })
         whenever(fromMemory.invoke(eq(params))).thenReturn(cachedDomain)
