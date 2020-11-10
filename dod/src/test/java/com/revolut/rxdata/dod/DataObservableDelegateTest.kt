@@ -38,6 +38,7 @@ class DataObservableDelegateTest {
     private val cachedDomain: Domain = "cached_domain_model"
 
     private val domain: Domain = "domain_model"
+    private val domain2: Domain = "domain_model_2"
 
     private val backendException = IOException("HTTP 500. All tests are green!")
 
@@ -171,9 +172,71 @@ class DataObservableDelegateTest {
     }
 
     @Test
+    fun `WHEN unsubscribed from network and data NOT arrives in 1 minute THEN data not saved`() {
+        val delayedNetwork = Single.fromCallable { domain }
+            .delay(2, TimeUnit.MINUTES, ioScheduler)
+
+        whenever(fromNetwork.invoke(eq(params))).thenReturn(delayedNetwork)
+        whenever(fromStorage.invoke(eq(params))).thenReturn(cachedDomain)
+
+        val testObserver =
+            dataObservableDelegate.observe(params = params, forceReload = false)
+                .extractContent()
+                .firstOrError() // gets storage and unsubscribes before network emits
+                .test()
+
+        ioScheduler.triggerActions()
+
+        testObserver.assertValueCount(1)
+        testObserver.assertValueAt(0, cachedDomain)
+        testObserver.assertComplete()
+
+        verify(toMemory).invoke(eq(params), eq(cachedDomain)) //storage domain moved to memory
+        verify(toMemory, never()).invoke(
+            eq(params),
+            eq(domain)
+        ) //network domain not moved to memory yet
+
+        ioScheduler.advanceTimeBy(
+            1,
+            TimeUnit.MINUTES
+        ) //network reload terminates after 1 minute
+
+        verify(toMemory, never()).invoke(
+            eq(params),
+            eq(domain)
+        ) //network domain not moved to memory
+        verify(toStorage, never()).invoke(
+            eq(params),
+            eq(domain)
+        ) //network domain not moved to storage
+
+
+        whenever(fromMemory.invoke(eq(params))).thenReturn(cachedDomain)
+
+        //re-subscribption will re-trigger network after 1 minute timeout
+        val network2 = Single.fromCallable { domain2 }
+
+        whenever(fromNetwork.invoke(eq(params))).thenReturn(network2)
+        dataObservableDelegate.observe(params = params, forceReload = false)
+            .test()
+
+        ioScheduler.triggerActions()
+
+        verify(toMemory, atLeastOnce()).invoke(
+            eq(params),
+            eq(domain2)
+        ) //network domain2 moved to memory
+        verify(toStorage, atLeastOnce()).invoke(
+            eq(params),
+            eq(domain2)
+        ) //network domain2 moved to storage
+    }
+
+    @Test
     fun `WHEN unsubscribed from network stream AND error occurs THEN next observe will reload`() {
         val delayedNetwork = Single.fromCallable<Domain> { throw  backendException }
-            .delay(1, TimeUnit.SECONDS, computationScheduler)
+            .delay(1, TimeUnit.SECONDS, ioScheduler)
 
         whenever(fromNetwork.invoke(eq(params))).thenReturn(delayedNetwork)
         whenever(fromStorage.invoke(eq(params))).thenReturn(cachedDomain)
@@ -193,7 +256,7 @@ class DataObservableDelegateTest {
         testObserver.assertValueAt(0, cachedDomain)
         testObserver.assertComplete()
 
-        computationScheduler.advanceTimeBy(
+        ioScheduler.advanceTimeBy(
             1,
             TimeUnit.SECONDS
         ) //network finishes with error after observer unsubscribed

@@ -11,6 +11,7 @@ import io.reactivex.subjects.PublishSubject
 import io.reactivex.subjects.Subject
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentSkipListSet
+import java.util.concurrent.TimeUnit
 
 /*
  * Copyright (C) 2019 Revolut
@@ -51,14 +52,14 @@ class DataObservableDelegate<Params : Any, Domain : Any> constructor(
     private val sharedRequest: SharedSingleRequest<Params, Domain> =
         SharedSingleRequest { params ->
             this.fromNetwork(params)
-                .doOnError {
-                    failedNetworkRequests.add(params)
-                }
                 .doOnSuccess { domain ->
                     failedNetworkRequests.remove(params)
 
                     toMemory(params, domain)
                     toStorage(params, domain)
+
+                    val data = Data(content = domain)
+                    subject(params).onNext(data)
                 }
 
         }
@@ -190,25 +191,36 @@ class DataObservableDelegate<Params : Any, Domain : Any> constructor(
         subject(params).onNext(Data(content = domain))
     }
 
+    @SuppressWarnings("CheckResult")
+    /**
+     * Suppressed because
+     * - subscription is limited by 1 minute timeout.
+     * - hot sharedRequest is internally restricted by refCount and will be
+     * terminated after all cold sub-streams are disposed by timeout
+     */
     private fun fetchFromNetwork(cachedData: Domain?, params: Params) {
         sharedRequest.getOrLoad(params)
-            .map { domain ->
-                val data = Data(content = domain)
-                subject(params).onNext(data)
-                data
-            }
-            .onErrorReturn { error ->
-                val data = Data(content = cachedData, error = error)
-                subject(params).onNext(data)
-                data
-            }
             .toObservable()
             .subscribeOn(Schedulers.io())
-            .subscribe()
+            .timeout(FETCH_NETWORK_SUBSCRIPTION_TIMEOUT_MINUTES, TimeUnit.MINUTES, Schedulers.io())
+            .subscribe({
+                //all done in sharedRequest
+            }, { error ->
+                //error handling is here and not in sharedRequest
+                //because timeout also generates an error that needs to be handled
+                val data = Data(content = cachedData, error = error)
+                failedNetworkRequests.add(params)
+                subject(params).onNext(data)
+            })
     }
 
     private fun subject(params: Params): Subject<Data<Domain>> = subjectsMap.getOrCreate(
         params,
         creator = { PublishSubject.create<Data<Domain>>().toSerialized() })
+
+
+    companion object {
+        private const val FETCH_NETWORK_SUBSCRIPTION_TIMEOUT_MINUTES = 1L
+    }
 
 }
