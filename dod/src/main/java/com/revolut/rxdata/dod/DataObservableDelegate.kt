@@ -6,10 +6,13 @@ import io.reactivex.Observable
 import io.reactivex.Observable.concat
 import io.reactivex.Observable.just
 import io.reactivex.Single
+import io.reactivex.internal.disposables.DisposableContainer
 import io.reactivex.schedulers.Schedulers
 import io.reactivex.subjects.PublishSubject
 import io.reactivex.subjects.Subject
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.ConcurrentSkipListSet
+import java.util.concurrent.TimeUnit
 
 /*
  * Copyright (C) 2019 Revolut
@@ -42,13 +45,31 @@ class DataObservableDelegate<Params : Any, Domain : Any> constructor(
     private val toStorage: ((params: Params, Domain) -> Unit) = { _, _ -> Unit },
     private val onRemove: (params: Params) -> Unit = { _ -> Unit },
     private val fromStorageSingle: ((params: Params) -> Single<Data<Domain>>) =
-        { params -> Single.fromCallable { Data(content = fromStorage(params)) } }
-
+        { params -> Single.fromCallable { Data(content = fromStorage(params)) } },
+    private val networkSubscriptionsContainer: DisposableContainer = DodGlobal.disposableContainer
 ) {
 
     private val subjectsMap = ConcurrentHashMap<Params, Subject<Data<Domain>>>()
     private val sharedRequest: SharedSingleRequest<Params, Domain> =
-        SharedSingleRequest { params -> this.fromNetwork(params) }
+        SharedSingleRequest { params ->
+            this.fromNetwork(params)
+                .doOnSuccess { domain ->
+                    failedNetworkRequests.remove(params)
+
+                    toMemory(params, domain)
+                    toStorage(params, domain)
+
+                    val data = Data(content = domain)
+                    subject(params).onNext(data)
+                }
+
+        }
+
+    /**
+     * Previously failed network requests will be reloaded on next observe
+     * even if forceReload == false and memory is not empty
+     */
+    private val failedNetworkRequests = ConcurrentSkipListSet<Params>()
 
     /**
      * Requests data from network and subscribes to updates
@@ -62,37 +83,51 @@ class DataObservableDelegate<Params : Any, Domain : Any> constructor(
             val memCache = fromMemory(params)
             val memoryIsEmpty = memCache == null
             val subject = subject(params)
-            val loading = forceReload || memoryIsEmpty
+            val loading = forceReload || memoryIsEmpty || failedNetworkRequests.contains(params)
 
-            fetchFromStorage(memCache, params)
-                .flatMapObservable { storageData ->
+            val observable: Observable<Data<Domain>> = if (memCache != null) {
+                concat(
+                    just(Data(content = memCache, loading = loading)),
+                    subject
+                ).doOnSubscribe {
                     if (loading) {
-                        val data = storageData.copy(loading = true)
+                        subject.onNext(Data(content = memCache, loading = loading))
+                        fetchFromNetwork(memCache, params)
+                    }
+                }
+            } else {
+                fromStorageSingle(params)
+                    .doOnSuccess { cachedValue ->
+                        cachedValue.content?.let { value ->
+                            toMemory(params, value)
+                        }
+                        if (loading) {
+                            fetchFromNetwork(cachedValue.content, params)
+                        }
+                    }
+                    .subscribeOn(Schedulers.io())
+                    .toObservable()
+                    .onErrorResumeNext { error: Throwable ->
+                        val data = Data(content = null, loading = true, error = error)
                         subject.onNext(data)
+
+                        fetchFromNetwork(null, params)
 
                         concat(
                             just(data),
-                            fetchFromNetwork(storageData.content, params).mergeWith(subject)
-                        )
-                    } else {
-                        concat(
-                            just(storageData),
                             subject
                         )
                     }
-                }
-                .onErrorResumeNext { _: Throwable ->
-                    val data = Data(content = null, loading = true)
-                    subject.onNext(data)
+                    .map { storageData ->
+                        val data = storageData.copy(loading = loading)
+                        subject.onNext(data)
+                        data
+                    }
+                    .concatWith(subject)
+                    .startWith(Data(null, loading = true))
+            }
 
-                    concat(
-                        just(data),
-                        fetchFromNetwork(null, params).mergeWith(subject)
-                    )
-                }
-                .startWith(Data(memCache, loading = loading))
-                .distinctUntilChanged()
-
+            observable.distinctUntilChanged()
         }
 
     /**
@@ -145,8 +180,9 @@ class DataObservableDelegate<Params : Any, Domain : Any> constructor(
         subject(params).onNext(Data(content = null))
     }
 
-    fun reload(params: Params): Completable =
-        fetchFromNetwork(cachedData = fromMemory(params), params = params).ignoreElements()
+    fun reload(params: Params): Completable = Completable.fromAction {
+        fetchFromNetwork(cachedData = fromMemory(params), params = params)
+    }
 
     @Deprecated(
         message = "Don't use it as it could cause inconsistent state of the Delegate",
@@ -156,39 +192,27 @@ class DataObservableDelegate<Params : Any, Domain : Any> constructor(
         subject(params).onNext(Data(content = domain))
     }
 
-    private fun fetchFromStorage(memCache: Domain?, params: Params): Single<Data<Domain>> =
-        if (memCache != null) {
-            Single.just(Data(content = memCache))
-        } else {
-            fromStorageSingle(params)
-                .doOnSuccess { cachedValue ->
-                    cachedValue.content?.let { value ->
-                        toMemory(params, value)
-                    }
-                }
-                .subscribeOn(Schedulers.io())
-        }
-
-    private fun fetchFromNetwork(cachedData: Domain?, params: Params): Observable<Data<Domain>> =
-        sharedRequest.getOrLoad(params)
-            .map { domain ->
-                toMemory(params, domain)
-                toStorage(params, domain)
-
-                val data = Data(content = domain)
-                subject(params).onNext(data)
-                data
-            }
-            .onErrorReturn { error ->
-                val data = Data(content = cachedData, error = error)
-                subject(params).onNext(data)
-                data
-            }
+    private fun fetchFromNetwork(cachedData: Domain?, params: Params) {
+        val pendingNetworkReload = sharedRequest.getOrLoad(params)
             .toObservable()
             .subscribeOn(Schedulers.io())
+            .timeout(DodGlobal.networkTimeoutSeconds, TimeUnit.SECONDS, Schedulers.io())
+            .subscribe({
+                //all done in sharedRequest
+            }, { error ->
+                //error handling is here and not in sharedRequest
+                //because timeout also generates an error that needs to be handled
+                val data = Data(content = cachedData, error = error)
+                failedNetworkRequests.add(params)
+                subject(params).onNext(data)
+            })
+
+        networkSubscriptionsContainer.add(pendingNetworkReload)
+    }
 
     private fun subject(params: Params): Subject<Data<Domain>> = subjectsMap.getOrCreate(
         params,
         creator = { PublishSubject.create<Data<Domain>>().toSerialized() })
+
 
 }
