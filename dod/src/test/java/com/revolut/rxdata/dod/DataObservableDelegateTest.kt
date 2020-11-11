@@ -208,7 +208,7 @@ class DataObservableDelegateTest {
 
         //network result is not stored
         verify(toMemory, never()).invoke(eq(params), eq(domain))
-        verify(toStorage,never()).invoke(eq(params), eq(domain))
+        verify(toStorage, never()).invoke(eq(params), eq(domain))
     }
 
     @Test

@@ -11,7 +11,6 @@ import io.reactivex.schedulers.Schedulers
 import io.reactivex.subjects.PublishSubject
 import io.reactivex.subjects.Subject
 import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.ConcurrentSkipListSet
 import java.util.concurrent.TimeUnit
 
 /*
@@ -69,7 +68,7 @@ class DataObservableDelegate<Params : Any, Domain : Any> constructor(
      * Previously failed network requests will be reloaded on next observe
      * even if forceReload == false and memory is not empty
      */
-    private val failedNetworkRequests = ConcurrentSkipListSet<Params>()
+    private val failedNetworkRequests = ConcurrentHashMap<Params, Throwable>()
 
     /**
      * Requests data from network and subscribes to updates
@@ -83,7 +82,7 @@ class DataObservableDelegate<Params : Any, Domain : Any> constructor(
             val memCache = fromMemory(params)
             val memoryIsEmpty = memCache == null
             val subject = subject(params)
-            val loading = forceReload || memoryIsEmpty || failedNetworkRequests.contains(params)
+            val loading = forceReload || memoryIsEmpty || failedNetworkRequests.containsKey(params)
 
             val observable: Observable<Data<Domain>> = if (memCache != null) {
                 concat(
@@ -203,7 +202,7 @@ class DataObservableDelegate<Params : Any, Domain : Any> constructor(
                 //error handling is here and not in sharedRequest
                 //because timeout also generates an error that needs to be handled
                 val data = Data(content = cachedData, error = error)
-                failedNetworkRequests.add(params)
+                failedNetworkRequests[params] = error
                 subject(params).onNext(data)
             })
 
