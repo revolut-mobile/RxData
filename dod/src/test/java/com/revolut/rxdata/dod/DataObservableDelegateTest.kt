@@ -574,8 +574,6 @@ class DataObservableDelegateTest {
 
         verify(toMemory).invoke(eq(params), eq(domain))
 
-        //whenever(fromMemory.invoke(eq(params))).thenReturn(domain)
-
         //refresh with error
         val testObserver3 =
             dataObservableDelegate.observe(params = params, forceReload = true).test()
@@ -612,9 +610,6 @@ class DataObservableDelegateTest {
 
     @Test
     fun `re-subscribing to constructed stream re-fetches memory cache`() {
-        //whenever(fromMemory.invoke(eq(params))).thenReturn(cachedDomain)
-
-
         val observable = dataObservableDelegate.observe(params, forceReload = true)
 
         observable.test().awaitCount(1).dispose()
