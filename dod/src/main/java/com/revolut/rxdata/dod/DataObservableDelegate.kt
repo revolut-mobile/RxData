@@ -6,6 +6,7 @@ import io.reactivex.Observable
 import io.reactivex.Observable.concat
 import io.reactivex.Observable.just
 import io.reactivex.Single
+import io.reactivex.internal.disposables.DisposableContainer
 import io.reactivex.schedulers.Schedulers
 import io.reactivex.subjects.PublishSubject
 import io.reactivex.subjects.Subject
@@ -44,8 +45,8 @@ class DataObservableDelegate<Params : Any, Domain : Any> constructor(
     private val toStorage: ((params: Params, Domain) -> Unit) = { _, _ -> Unit },
     private val onRemove: (params: Params) -> Unit = { _ -> Unit },
     private val fromStorageSingle: ((params: Params) -> Single<Data<Domain>>) =
-        { params -> Single.fromCallable { Data(content = fromStorage(params)) } }
-
+        { params -> Single.fromCallable { Data(content = fromStorage(params)) } },
+    private val networkSubscriptionsContainer: DisposableContainer = DodGlobal.disposableContainer
 ) {
 
     private val subjectsMap = ConcurrentHashMap<Params, Subject<Data<Domain>>>()
@@ -191,18 +192,11 @@ class DataObservableDelegate<Params : Any, Domain : Any> constructor(
         subject(params).onNext(Data(content = domain))
     }
 
-    @SuppressWarnings("CheckResult")
-    /**
-     * Suppressed because
-     * - subscription is limited by 1 minute timeout.
-     * - hot sharedRequest is internally restricted by refCount and will be
-     * terminated after all cold sub-streams are disposed by timeout
-     */
     private fun fetchFromNetwork(cachedData: Domain?, params: Params) {
-        sharedRequest.getOrLoad(params)
+        val pendingNetworkReload = sharedRequest.getOrLoad(params)
             .toObservable()
             .subscribeOn(Schedulers.io())
-            .timeout(FETCH_NETWORK_SUBSCRIPTION_TIMEOUT_MINUTES, TimeUnit.MINUTES, Schedulers.io())
+            .timeout(DodGlobal.networkTimeoutSeconds, TimeUnit.SECONDS, Schedulers.io())
             .subscribe({
                 //all done in sharedRequest
             }, { error ->
@@ -212,15 +206,13 @@ class DataObservableDelegate<Params : Any, Domain : Any> constructor(
                 failedNetworkRequests.add(params)
                 subject(params).onNext(data)
             })
+
+        networkSubscriptionsContainer.add(pendingNetworkReload)
     }
 
     private fun subject(params: Params): Subject<Data<Domain>> = subjectsMap.getOrCreate(
         params,
         creator = { PublishSubject.create<Data<Domain>>().toSerialized() })
 
-
-    companion object {
-        private const val FETCH_NETWORK_SUBSCRIPTION_TIMEOUT_MINUTES = 1L
-    }
 
 }

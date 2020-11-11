@@ -60,6 +60,9 @@ class DataObservableDelegateTest {
     private val computationScheduler: TestScheduler = TestScheduler()
     private val ioScheduler: TestScheduler = TestScheduler()
 
+    private val memCache = hashMapOf<Params, Domain>()
+    private val storage = hashMapOf<Params, Domain>()
+
     @Before
     fun setUp() {
         fromNetwork = mock()
@@ -75,6 +78,21 @@ class DataObservableDelegateTest {
             fromStorage = fromStorage,
             toStorage = toStorage
         )
+
+        memCache.clear()
+        storage.clear()
+
+        whenever(fromMemory.invoke(any())).thenAnswer { invocation -> memCache[invocation.arguments[0]] }
+        whenever(toMemory.invoke(any(), any())).thenAnswer { invocation ->
+            memCache[invocation.arguments[0] as Params] = invocation.arguments[1] as Domain
+            Unit
+        }
+
+        whenever(fromStorage.invoke(any())).thenAnswer { invocation -> storage[invocation.arguments[0]] }
+        whenever(toStorage.invoke(any(), any())).thenAnswer { invocation ->
+            storage[invocation.arguments[0] as Params] = invocation.arguments[1] as Domain
+            Unit
+        }
 
         RxJavaPlugins.setIoSchedulerHandler { ioScheduler }
         RxJavaPlugins.setComputationSchedulerHandler { computationScheduler }
@@ -105,7 +123,7 @@ class DataObservableDelegateTest {
     @Test
     fun `FORCE observing data when memory cache IS EMPTY and storage IS NOT EMPTY`() {
         whenever(fromNetwork.invoke(eq(params))).thenReturn(Single.fromCallable { domain })
-        whenever(fromStorage.invoke(eq(params))).thenReturn(cachedDomain)
+        storage[params] = cachedDomain
 
         val testObserver =
             dataObservableDelegate.observe(params = params, forceReload = true).test()
@@ -135,7 +153,7 @@ class DataObservableDelegateTest {
             .delay(1, TimeUnit.SECONDS, computationScheduler)
 
         whenever(fromNetwork.invoke(eq(params))).thenReturn(delayedNetwork)
-        whenever(fromStorage.invoke(eq(params))).thenReturn(cachedDomain)
+        storage[params] = cachedDomain
 
         val testObserver =
             dataObservableDelegate.observe(params = params, forceReload = false)
@@ -149,40 +167,64 @@ class DataObservableDelegateTest {
         testObserver.assertValueAt(0, cachedDomain)
         testObserver.assertComplete()
 
-        verify(toMemory).invoke(eq(params), eq(cachedDomain)) //storage domain moved to memory
-        verify(toMemory, never()).invoke(
-            eq(params),
-            eq(domain)
-        ) //network domain not moved to memory yet
+        //storage domain moved to memory
+        verify(toMemory).invoke(eq(params), eq(cachedDomain))
+        //network domain not moved to memory yet
+        verify(toMemory, never()).invoke(eq(params), eq(domain))
 
         computationScheduler.advanceTimeBy(
             1,
             TimeUnit.SECONDS
         ) //network finishes after observer unsubscribed
 
-        verify(toMemory, atLeastOnce()).invoke(
-            eq(params),
-            eq(domain)
-        ) //network domain moved to memory
-        verify(toStorage, atLeastOnce()).invoke(
-            eq(params),
-            eq(domain)
-        ) //network domain moved to storage
-
+        //network domain moved to memory
+        verify(toMemory, atLeastOnce()).invoke(eq(params), eq(domain))
+        //network domain moved to storage
+        verify(toStorage, atLeastOnce()).invoke(eq(params), eq(domain))
     }
 
+
     @Test
-    fun `WHEN unsubscribed from network and data NOT arrives in 1 minute THEN data not saved`() {
+    fun `WHEN unsubscribed from dod AND dod is globally cleared THEN data is not saved`() {
+        DodGlobal.networkTimeoutSeconds = 60L
+
         val delayedNetwork = Single.fromCallable { domain }
-            .delay(2, TimeUnit.MINUTES, ioScheduler)
+            .delay(10, TimeUnit.SECONDS, computationScheduler)
 
         whenever(fromNetwork.invoke(eq(params))).thenReturn(delayedNetwork)
-        whenever(fromStorage.invoke(eq(params))).thenReturn(cachedDomain)
+        storage[params] = cachedDomain
 
         val testObserver =
             dataObservableDelegate.observe(params = params, forceReload = false)
                 .extractContent()
-                .firstOrError() // gets storage and unsubscribes before network emits
+                .firstOrError() // gets storage and un-subscribes before network emits
+                .test()
+        ioScheduler.triggerActions()
+
+        //network is not finished yet and we dispose DOD globally
+        computationScheduler.advanceTimeBy(5, TimeUnit.SECONDS)
+        DodGlobal.clearPendingNetwork()
+        computationScheduler.advanceTimeBy(5, TimeUnit.SECONDS)
+
+        //network result is not stored
+        verify(toMemory, never()).invoke(eq(params), eq(domain))
+        verify(toStorage,never()).invoke(eq(params), eq(domain))
+    }
+
+    @Test
+    fun `WHEN unsubscribed from network and data NOT arrives in 60 seconds THEN data not saved`() {
+        DodGlobal.networkTimeoutSeconds = 60L
+
+        val delayedNetwork = Single.fromCallable { domain }
+            .delay(2, TimeUnit.MINUTES, ioScheduler)
+
+        whenever(fromNetwork.invoke(eq(params))).thenReturn(delayedNetwork)
+        storage[params] = cachedDomain
+
+        val testObserver =
+            dataObservableDelegate.observe(params = params, forceReload = false)
+                .extractContent()
+                .firstOrError() // gets storage and un-subscribes before network emits
                 .test()
 
         ioScheduler.triggerActions()
@@ -191,30 +233,21 @@ class DataObservableDelegateTest {
         testObserver.assertValueAt(0, cachedDomain)
         testObserver.assertComplete()
 
-        verify(toMemory).invoke(eq(params), eq(cachedDomain)) //storage domain moved to memory
-        verify(toMemory, never()).invoke(
-            eq(params),
-            eq(domain)
-        ) //network domain not moved to memory yet
+        //storage domain moved to memory
+        verify(toMemory).invoke(eq(params), eq(cachedDomain))
+        //network domain not moved to memory yet
+        verify(toMemory, never()).invoke(eq(params), eq(domain))
 
-        ioScheduler.advanceTimeBy(
-            1,
-            TimeUnit.MINUTES
-        ) //network reload terminates after 1 minute
+        //network reload terminates after 60 seconds
+        ioScheduler.advanceTimeBy(60, TimeUnit.SECONDS)
 
-        verify(toMemory, never()).invoke(
-            eq(params),
-            eq(domain)
-        ) //network domain not moved to memory
-        verify(toStorage, never()).invoke(
-            eq(params),
-            eq(domain)
-        ) //network domain not moved to storage
+        //network domain not moved to memory
+        verify(toMemory, never()).invoke(eq(params), eq(domain))
+        //network domain not moved to storage
+        verify(toStorage, never()).invoke(eq(params), eq(domain))
 
 
-        whenever(fromMemory.invoke(eq(params))).thenReturn(cachedDomain)
-
-        //re-subscribption will re-trigger network after 1 minute timeout
+        //re-subscribption will re-trigger network after 60 seconds timeout
         val network2 = Single.fromCallable { domain2 }
 
         whenever(fromNetwork.invoke(eq(params))).thenReturn(network2)
@@ -223,14 +256,10 @@ class DataObservableDelegateTest {
 
         ioScheduler.triggerActions()
 
-        verify(toMemory, atLeastOnce()).invoke(
-            eq(params),
-            eq(domain2)
-        ) //network domain2 moved to memory
-        verify(toStorage, atLeastOnce()).invoke(
-            eq(params),
-            eq(domain2)
-        ) //network domain2 moved to storage
+        //network domain2 moved to memory
+        verify(toMemory, atLeastOnce()).invoke(eq(params), eq(domain2))
+        //network domain2 moved to storage
+        verify(toStorage, atLeastOnce()).invoke(eq(params), eq(domain2))
     }
 
     @Test
@@ -239,7 +268,7 @@ class DataObservableDelegateTest {
             .delay(1, TimeUnit.SECONDS, ioScheduler)
 
         whenever(fromNetwork.invoke(eq(params))).thenReturn(delayedNetwork)
-        whenever(fromStorage.invoke(eq(params))).thenReturn(cachedDomain)
+        storage[params] = cachedDomain
 
         val testObserver =
             dataObservableDelegate.observe(params = params, forceReload = false)
@@ -250,7 +279,6 @@ class DataObservableDelegateTest {
         ioScheduler.triggerActions()
 
         verify(toMemory).invoke(eq(params), eq(cachedDomain)) //storage domain moved to memory
-        whenever(fromMemory.invoke(eq(params))).thenReturn(cachedDomain)
 
         testObserver.assertValueCount(1)
         testObserver.assertValueAt(0, cachedDomain)
@@ -274,22 +302,17 @@ class DataObservableDelegateTest {
 
         ioScheduler.triggerActions()
 
-        verify(toMemory, atLeastOnce()).invoke(
-            eq(params),
-            eq(domain)
-        ) //network domain moved to memory
-        verify(toStorage, atLeastOnce()).invoke(
-            eq(params),
-            eq(domain)
-        ) //network domain moved to storage
+        //network domain moved to memory
+        verify(toMemory, atLeastOnce()).invoke(eq(params), eq(domain))
+        //network domain moved to storage
+        verify(toStorage, atLeastOnce()).invoke(eq(params), eq(domain))
 
     }
 
     @Test
     fun `FORCE observing data when memory cache IS NOT EMPTY`() {
         whenever(fromNetwork.invoke(eq(params))).thenReturn(Single.fromCallable { domain })
-        whenever(fromMemory.invoke(eq(params))).thenReturn(cachedDomain)
-
+        memCache[params] = cachedDomain
 
         val testObserver =
             dataObservableDelegate.observe(params = params, forceReload = true).test()
@@ -312,7 +335,7 @@ class DataObservableDelegateTest {
     @Test
     fun `WHEN fromNetwork is retried AND notifyFromMemory called THEN subscriber receives the value`() {
         whenever(fromNetwork.invoke(eq(params))).thenReturn(Single.never())
-        whenever(fromMemory.invoke(eq(params))).thenReturn(cachedDomain)
+        memCache[params] = cachedDomain
 
 
         val testObserver =
@@ -354,7 +377,7 @@ class DataObservableDelegateTest {
     @Test
     fun `FORCE observing data when memory cache IS EMPTY and storage IS NOT EMPTY and server returns ERROR`() {
         whenever(fromNetwork.invoke(eq(params))).thenReturn(Single.fromCallable { throw backendException })
-        whenever(fromStorage.invoke(eq(params))).thenReturn(cachedDomain)
+        storage[params] = cachedDomain
 
         val testObserver =
             dataObservableDelegate.observe(params = params, forceReload = true).test()
@@ -378,7 +401,7 @@ class DataObservableDelegateTest {
     @Test
     fun `FORCE observing data when memory cache IS NOT EMPTY  and server returns ERROR`() {
         whenever(fromNetwork.invoke(eq(params))).thenReturn(Single.fromCallable { throw backendException })
-        whenever(fromMemory.invoke(eq(params))).thenReturn(cachedDomain)
+        memCache[params] = cachedDomain
 
         val testObserver =
             dataObservableDelegate.observe(params = params, forceReload = true).test()
@@ -425,7 +448,7 @@ class DataObservableDelegateTest {
     @Test
     fun `NOT FORCE observing data when memory cache IS EMPTY and storage IS NOT EMPTY`() {
         whenever(fromNetwork.invoke(eq(params))).thenReturn(Single.fromCallable { domain })
-        whenever(fromStorage.invoke(eq(params))).thenReturn(cachedDomain)
+        storage[params] = cachedDomain
 
         val testObserver =
             dataObservableDelegate.observe(params = params, forceReload = false).test()
@@ -449,7 +472,7 @@ class DataObservableDelegateTest {
 
     @Test
     fun `NOT FORCE observing data when memory cache IS NOT EMPTY`() {
-        whenever(fromMemory.invoke(eq(params))).thenReturn(cachedDomain)
+        memCache[params] = cachedDomain
 
         val testObserver =
             dataObservableDelegate.observe(params = params, forceReload = false).test()
@@ -489,8 +512,7 @@ class DataObservableDelegateTest {
     @Test
     fun `NOT FORCE observing data when memory cache IS EMPTY and storage IS NOT EMPTY and server returns ERROR`() {
         whenever(fromNetwork.invoke(eq(params))).thenReturn(Single.fromCallable { throw backendException })
-        whenever(fromStorage.invoke(eq(params))).thenReturn(cachedDomain)
-
+        storage[params] = cachedDomain
 
         val testObserver =
             dataObservableDelegate.observe(params = params, forceReload = false).test()
@@ -524,8 +546,7 @@ class DataObservableDelegateTest {
                 throw backendException
             }
         })
-        whenever(fromMemory.invoke(eq(params))).thenReturn(cachedDomain)
-
+        memCache[params] = cachedDomain
 
         val testObserver1 =
             dataObservableDelegate.observe(params = params, forceReload = false).test()
@@ -553,7 +574,7 @@ class DataObservableDelegateTest {
 
         verify(toMemory).invoke(eq(params), eq(domain))
 
-        whenever(fromMemory.invoke(eq(params))).thenReturn(domain)
+        //whenever(fromMemory.invoke(eq(params))).thenReturn(domain)
 
         //refresh with error
         val testObserver3 =
@@ -591,7 +612,7 @@ class DataObservableDelegateTest {
 
     @Test
     fun `re-subscribing to constructed stream re-fetches memory cache`() {
-        whenever(fromMemory.invoke(eq(params))).thenReturn(cachedDomain)
+        //whenever(fromMemory.invoke(eq(params))).thenReturn(cachedDomain)
 
 
         val observable = dataObservableDelegate.observe(params, forceReload = true)
