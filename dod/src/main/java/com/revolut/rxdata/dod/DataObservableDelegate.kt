@@ -112,10 +112,7 @@ class DataObservableDelegate<Params : Any, Domain : Any> constructor(
 
                         fetchFromNetwork(null, params)
 
-                        concat(
-                            just(data),
-                            subject
-                        )
+                        just(data)
                     }
                     .map { storageData ->
                         val data = storageData.copy(loading = loading)

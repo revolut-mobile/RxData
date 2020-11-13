@@ -647,4 +647,22 @@ class DataObservableDelegateTest {
         verify(toStorage).invoke(params, updatedDomain)
     }
 
+
+    @Test
+    fun `WHEN storage returns error THEN network data is emitted later`() {
+        val error = IllegalStateException()
+        whenever(fromNetwork.invoke(eq(params))).thenReturn(Single.fromCallable { domain })
+        whenever(fromStorage.invoke(any())).thenThrow(error)
+
+        val testObserver =
+            dataObservableDelegate.observe(params = params, forceReload = false).test()
+
+        ioScheduler.triggerActions()
+
+        testObserver.assertValueCount(3)
+        testObserver.assertValueAt(0, Data(content = null, error = null, loading = true))
+        testObserver.assertValueAt(1, Data(content = null, error = error, loading = true))
+        testObserver.assertValueAt(2, Data(content = domain, error = null, loading = false))
+    }
+
 }
