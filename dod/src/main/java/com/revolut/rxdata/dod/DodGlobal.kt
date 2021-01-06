@@ -1,6 +1,6 @@
 package com.revolut.rxdata.dod
 
-import io.reactivex.disposables.CompositeDisposable
+import io.reactivex.rxjava3.disposables.CompositeDisposable
 
 object DodGlobal {
 

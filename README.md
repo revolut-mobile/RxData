@@ -9,8 +9,8 @@ RxData is Android mobile library for building reactive data flow in Android appl
 Gradle is the only supported build configuration - please add the below line to your build.gradle:
 
 ```
-implementation 'com.revolut.rxdata:dod:1.2.5'
-implementation 'com.revolut.rxdata:core:1.2.8'
+implementation 'com.revolut.rxdata:dod:1.4.0'
+implementation 'com.revolut.rxdata:core:1.4.0'
 ```
 
 

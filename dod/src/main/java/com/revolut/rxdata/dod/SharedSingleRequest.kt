@@ -1,6 +1,6 @@
 package com.revolut.rxdata.dod
 
-import io.reactivex.Single
+import io.reactivex.rxjava3.core.Single
 
 /*
  * Copyright (C) 2019 Revolut

@@ -1,7 +1,7 @@
 package com.revolut.rxdata.core.extensions
 
 import com.revolut.rxdata.core.Data
-import io.reactivex.Observable
+import io.reactivex.rxjava3.core.Observable
 import org.junit.Test
 
 class ExtractContentKtTest {

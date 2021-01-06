@@ -1,10 +1,10 @@
 package com.revolut.rxdata.core.extensions
 
 import com.revolut.rxdata.core.Data
-import io.reactivex.Observable
-import io.reactivex.Observable.combineLatest
-import io.reactivex.exceptions.CompositeException
-import io.reactivex.functions.BiFunction
+import io.reactivex.rxjava3.core.Observable
+import io.reactivex.rxjava3.core.Observable.combineLatest
+import io.reactivex.rxjava3.exceptions.CompositeException
+import io.reactivex.rxjava3.functions.BiFunction
 
 
 fun <A : Any, B : Any> combineLatestData(

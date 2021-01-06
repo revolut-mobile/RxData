@@ -4,7 +4,7 @@ import Versions.rxJavaVersion
 
 object Versions {
     const val kotlinVersion = "1.3.70"
-    const val rxJavaVersion = "2.2.18"
+    const val rxJavaVersion = "3.0.9"
 }
 
 object BuildScriptDependencies {
@@ -14,7 +14,7 @@ object BuildScriptDependencies {
 }
 
 object Dependencies {
-    const val rxJava = "io.reactivex.rxjava2:rxjava:$rxJavaVersion"
+    const val rxJava = "io.reactivex.rxjava3:rxjava:$rxJavaVersion"
     const val kotlinStdLib = "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlinVersion"
 
     const val jUnit = "junit:junit:4.13"

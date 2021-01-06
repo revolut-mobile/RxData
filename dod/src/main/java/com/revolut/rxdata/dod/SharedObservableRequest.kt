@@ -1,8 +1,7 @@
 package com.revolut.rxdata.dod
 
-import io.reactivex.Observable
-import io.reactivex.schedulers.Schedulers
-import java.util.*
+import io.reactivex.rxjava3.core.Observable
+import io.reactivex.rxjava3.schedulers.Schedulers
 
 /*
  * Copyright (C) 2019 Revolut
