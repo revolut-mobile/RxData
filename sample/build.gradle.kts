@@ -9,6 +9,10 @@ android {
     compileSdkVersion(29)
     buildToolsVersion("29.0.2")
 
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
+    }
 
     defaultConfig {
         applicationId = "com.revolut.rxdata.sample"

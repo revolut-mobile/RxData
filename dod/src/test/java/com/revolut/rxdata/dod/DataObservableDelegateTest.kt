@@ -3,9 +3,9 @@ package com.revolut.rxdata.dod
 import com.nhaarman.mockito_kotlin.*
 import com.revolut.rxdata.core.Data
 import com.revolut.rxdata.core.extensions.extractContent
-import io.reactivex.Single
-import io.reactivex.plugins.RxJavaPlugins
-import io.reactivex.schedulers.TestScheduler
+import io.reactivex.rxjava3.core.Single
+import io.reactivex.rxjava3.plugins.RxJavaPlugins
+import io.reactivex.rxjava3.schedulers.TestScheduler
 import org.junit.Before
 import org.junit.Test
 import java.io.IOException

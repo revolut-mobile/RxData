@@ -1,8 +1,8 @@
 package com.revolut.rxdata.core.extensions
 
 import com.revolut.rxdata.core.Data
-import io.reactivex.observers.TestObserver
-import io.reactivex.subjects.PublishSubject
+import io.reactivex.rxjava3.observers.TestObserver
+import io.reactivex.rxjava3.subjects.PublishSubject
 import org.junit.Before
 import org.junit.Test
 

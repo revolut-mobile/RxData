@@ -1,10 +1,10 @@
 package com.revolut.rxdata.core.extensions
 
 import com.revolut.rxdata.core.Data
-import io.reactivex.Flowable
-import io.reactivex.Maybe
-import io.reactivex.Observable
-import io.reactivex.Single
+import io.reactivex.rxjava3.core.Flowable
+import io.reactivex.rxjava3.core.Maybe
+import io.reactivex.rxjava3.core.Observable
+import io.reactivex.rxjava3.core.Single
 
 /*
  * Copyright (C) 2020 Revolut

@@ -1,15 +1,15 @@
 package com.revolut.rxdata.dod
 
 import com.revolut.rxdata.core.Data
-import io.reactivex.Completable
-import io.reactivex.Observable
-import io.reactivex.Observable.concat
-import io.reactivex.Observable.just
-import io.reactivex.Single
-import io.reactivex.internal.disposables.DisposableContainer
-import io.reactivex.schedulers.Schedulers
-import io.reactivex.subjects.PublishSubject
-import io.reactivex.subjects.Subject
+import io.reactivex.rxjava3.core.Completable
+import io.reactivex.rxjava3.core.Observable
+import io.reactivex.rxjava3.core.Observable.concat
+import io.reactivex.rxjava3.core.Observable.just
+import io.reactivex.rxjava3.core.Single
+import io.reactivex.rxjava3.disposables.DisposableContainer
+import io.reactivex.rxjava3.schedulers.Schedulers
+import io.reactivex.rxjava3.subjects.PublishSubject
+import io.reactivex.rxjava3.subjects.Subject
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 
@@ -120,7 +120,7 @@ class DataObservableDelegate<Params : Any, Domain : Any> constructor(
                         data
                     }
                     .concatWith(subject)
-                    .startWith(Data(null, loading = true))
+                    .startWithItem(Data(null, loading = true))
             }
 
             observable.distinctUntilChanged()
