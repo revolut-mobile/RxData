@@ -52,6 +52,7 @@ class DataObservableDelegate<Params : Any, Domain : Any> constructor(
     private val sharedRequest: SharedSingleRequest<Params, Domain> =
         SharedSingleRequest { params ->
             this.fromNetwork(params)
+                .subscribeOn(Schedulers.io())
                 .doOnSuccess { domain ->
                     failedNetworkRequests.remove(params)
 
@@ -191,7 +192,6 @@ class DataObservableDelegate<Params : Any, Domain : Any> constructor(
     private fun fetchFromNetwork(cachedData: Domain?, params: Params) {
         val pendingNetworkReload = sharedRequest.getOrLoad(params)
             .toObservable()
-            .subscribeOn(Schedulers.io())
             .timeout(DodGlobal.networkTimeoutSeconds, TimeUnit.SECONDS, Schedulers.io())
             .subscribe({
                 //all done in sharedRequest
@@ -199,7 +199,11 @@ class DataObservableDelegate<Params : Any, Domain : Any> constructor(
                 //error handling is here and not in sharedRequest
                 //because timeout also generates an error that needs to be handled
                 val data = Data(content = cachedData, error = error)
-                failedNetworkRequests[params] = error
+
+                if (error !is NoSuchElementException) {
+                    failedNetworkRequests[params] = error
+                }
+
                 subject(params).onNext(data)
             })
 
