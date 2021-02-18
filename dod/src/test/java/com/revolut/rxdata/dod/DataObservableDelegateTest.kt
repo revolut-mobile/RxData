@@ -6,6 +6,7 @@ import com.revolut.rxdata.core.extensions.extractContent
 import io.reactivex.Single
 import io.reactivex.plugins.RxJavaPlugins
 import io.reactivex.schedulers.TestScheduler
+import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Test
 import java.io.IOException
@@ -307,6 +308,54 @@ class DataObservableDelegateTest {
         //network domain moved to storage
         verify(toStorage, atLeastOnce()).invoke(eq(params), eq(domain))
 
+    }
+
+    @Test
+    fun `WHEN previous fromNetwork failed THEN observe forceReload=false will reload`() {
+        whenever(fromNetwork.invoke(eq(params))).thenReturn(Single.fromCallable { throw backendException })
+        storage[params] = cachedDomain
+
+        dataObservableDelegate.observe(params = params, forceReload = false)
+            .extractContent()
+            .test().apply { ioScheduler.triggerActions() }
+            .assertError(backendException)
+
+        assertEquals(cachedDomain, memCache[params])
+        verify(fromNetwork, times(1)).invoke(eq(params))
+
+        whenever(fromNetwork.invoke(eq(params))).thenReturn(Single.fromCallable { domain })
+
+        dataObservableDelegate.observe(params = params, forceReload = false)
+            .extractContent()
+            .test().apply { ioScheduler.triggerActions() }
+            .assertValues(cachedDomain, domain)
+
+        verify(fromNetwork, times(2)).invoke(eq(params))
+    }
+
+    @Test
+    fun `WHEN previous fromNetwork failed with NoSuchElementException THEN observe forceReload=false will not reload`() {
+        class CustomException : NoSuchElementException()
+
+        whenever(fromNetwork.invoke(eq(params))).thenReturn(Single.fromCallable { throw CustomException() })
+        storage[params] = cachedDomain
+
+        dataObservableDelegate.observe(params = params, forceReload = false)
+            .extractContent(consumeErrors = { error, _ -> error.takeUnless { it is CustomException } })
+            .test().apply { ioScheduler.triggerActions() }
+            .assertValues(cachedDomain, cachedDomain)
+
+        assertEquals(cachedDomain, memCache[params])
+        verify(fromNetwork, times(1)).invoke(eq(params))
+
+        whenever(fromNetwork.invoke(eq(params))).thenReturn(Single.fromCallable { domain })
+
+        dataObservableDelegate.observe(params = params, forceReload = false)
+            .extractContent()
+            .test().apply { ioScheduler.triggerActions() }
+            .assertValues(cachedDomain)
+
+        verifyNoMoreInteractions(fromNetwork)
     }
 
     @Test
