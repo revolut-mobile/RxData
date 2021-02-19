@@ -46,7 +46,8 @@ internal class SharedObservableRequest<Params, Result>(
                     requests[params] = newShared
                     return@defer newShared
                 }
-            }
+            }.subscribeOn(Schedulers.io())
+
     }
 
 }

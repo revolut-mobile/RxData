@@ -52,7 +52,6 @@ class DataObservableDelegate<Params : Any, Domain : Any> constructor(
     private val sharedRequest: SharedSingleRequest<Params, Domain> =
         SharedSingleRequest { params ->
             this.fromNetwork(params)
-                .subscribeOn(Schedulers.io())
                 .doOnSuccess { domain ->
                     failedNetworkRequests.remove(params)
 

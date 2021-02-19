@@ -149,6 +149,23 @@ class DataObservableDelegateTest {
     }
 
     @Test
+    fun `fromNetwork should be invoked on IO`() {
+        memCache[params] = cachedDomain
+
+        whenever(fromNetwork.invoke(eq(params))).thenReturn(Single.fromCallable {
+            domain
+        })
+
+        dataObservableDelegate.observe(params = params, forceReload = true).test()
+
+        verifyNoMoreInteractions(fromNetwork)
+
+        ioScheduler.triggerActions()
+
+        verify(fromNetwork).invoke(any())
+    }
+
+    @Test
     fun `WHEN unsubscribed from network reload THEN data is still saved to storage and memory`() {
         val delayedNetwork = Single.fromCallable { domain }
             .delay(1, TimeUnit.SECONDS, computationScheduler)
