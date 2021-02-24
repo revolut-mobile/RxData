@@ -49,7 +49,7 @@ class DataObservableDelegate<Params : Any, Domain : Any> constructor(
 ) {
 
     private val subjectsMap = ConcurrentHashMap<Params, Subject<Data<Domain>>>()
-    private val sharedRequest: SharedSingleRequest<Params, Domain> =
+    private val sharedNetworkRequest: SharedSingleRequest<Params, Domain> =
         SharedSingleRequest { params ->
             this.fromNetwork(params)
                 .doOnSuccess { domain ->
@@ -60,6 +60,35 @@ class DataObservableDelegate<Params : Any, Domain : Any> constructor(
 
                     val data = Data(content = domain)
                     subject(params).onNext(data)
+                }
+
+        }
+
+    private val sharedStorageRequest: SharedSingleRequest<Pair<Params, Boolean>, Data<Domain>> =
+        SharedSingleRequest { (params, loading) ->
+            val subject = subject(params)
+
+            this.fromStorageSingle(params)
+                .doOnSuccess { cachedValue ->
+                    cachedValue.content?.let { value ->
+                        toMemory(params, value)
+                    }
+                }
+                .map { storageData ->
+                    val data = storageData.copy(loading = loading)
+                    subject.onNext(data)
+                    data
+                }
+                .onErrorResumeNext { error: Throwable ->
+                    val data = Data(content = null, loading = true, error = error)
+                    subject.onNext(data)
+
+                    Single.just(data)
+                }
+                .doAfterSuccess { cachedValue ->
+                    if (cachedValue.loading || cachedValue.error != null) {
+                        fetchFromNetwork(cachedValue.content, params)
+                    }
                 }
 
         }
@@ -95,30 +124,8 @@ class DataObservableDelegate<Params : Any, Domain : Any> constructor(
                     }
                 }
             } else {
-                fromStorageSingle(params)
-                    .doOnSuccess { cachedValue ->
-                        cachedValue.content?.let { value ->
-                            toMemory(params, value)
-                        }
-                        if (loading) {
-                            fetchFromNetwork(cachedValue.content, params)
-                        }
-                    }
-                    .subscribeOn(Schedulers.io())
+                sharedStorageRequest.getOrLoad(params to loading)
                     .toObservable()
-                    .onErrorResumeNext { error: Throwable ->
-                        val data = Data(content = null, loading = true, error = error)
-                        subject.onNext(data)
-
-                        fetchFromNetwork(null, params)
-
-                        just(data)
-                    }
-                    .map { storageData ->
-                        val data = storageData.copy(loading = loading)
-                        subject.onNext(data)
-                        data
-                    }
                     .concatWith(subject)
                     .startWith(Data(null, loading = true))
             }
@@ -189,7 +196,7 @@ class DataObservableDelegate<Params : Any, Domain : Any> constructor(
     }
 
     private fun fetchFromNetwork(cachedData: Domain?, params: Params) {
-        val pendingNetworkReload = sharedRequest.getOrLoad(params)
+        val pendingNetworkReload = sharedNetworkRequest.getOrLoad(params)
             .toObservable()
             .timeout(DodGlobal.networkTimeoutSeconds, TimeUnit.SECONDS, Schedulers.io())
             .subscribe({
@@ -199,7 +206,9 @@ class DataObservableDelegate<Params : Any, Domain : Any> constructor(
                 //because timeout also generates an error that needs to be handled
                 val data = Data(content = cachedData, error = error)
 
-                if (error !is NoSuchElementException) {
+                if (error is NoSuchElementException) {
+                    failedNetworkRequests.remove(params)
+                } else {
                     failedNetworkRequests[params] = error
                 }
 
