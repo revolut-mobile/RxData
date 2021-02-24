@@ -11,6 +11,7 @@ import org.junit.Before
 import org.junit.Test
 import java.io.IOException
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
 
 private typealias Params = Int
 private typealias Domain = String
@@ -729,6 +730,26 @@ class DataObservableDelegateTest {
         testObserver.assertValueAt(0, Data(content = null, error = null, loading = true))
         testObserver.assertValueAt(1, Data(content = null, error = error, loading = true))
         testObserver.assertValueAt(2, Data(content = domain, error = null, loading = false))
+    }
+
+
+    @Test
+    fun `WHEN memoryIsEmpty and dod is observed multipple times THEN fromStorage is called once`() {
+        val counter = AtomicInteger(0);
+
+        whenever(fromNetwork.invoke(eq(params))).thenReturn(Single.fromCallable { domain })
+        whenever(fromStorage.invoke(eq(params))).thenAnswer {
+            counter.incrementAndGet()
+            cachedDomain
+        }
+
+        dataObservableDelegate.observe(params = params, forceReload = true).test()
+        dataObservableDelegate.observe(params = params, forceReload = true).test()
+        dataObservableDelegate.observe(params = params, forceReload = true).test()
+
+        ioScheduler.triggerActions()
+
+        assertEquals(1, counter.get())
     }
 
 }
