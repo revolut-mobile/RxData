@@ -57,7 +57,6 @@ import static org.robolectric.shadows.ShadowLooper.runUiThreadTasks;
 import static org.robolectric.shadows.ShadowLooper.runUiThreadTasksIncludingDelayedTasks;
 import static org.robolectric.shadows.ShadowLooper.unPauseMainLooper;
 
-@SuppressWarnings("ConstantConditions")
 @RunWith(ParameterizedRobolectricTestRunner.class)
 @Config(manifest = Config.NONE, sdk = 16)
 public final class HandlerSchedulerTest {

@@ -39,5 +39,5 @@ dependencies {
     implementation("io.reactivex.rxjava2:rxjava:2.2.18")
 
     testImplementation("junit:junit:4.13")
-    testImplementation("org.robolectric:robolectric:4.4")
+    testImplementation("org.robolectric:robolectric:4.3")
 }
