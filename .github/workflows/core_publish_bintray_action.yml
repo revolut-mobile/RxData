@@ -1,4 +1,4 @@
-name: "core: publish (bintray)"
+name: "core: publish (maven)"
 
 on:
   release:
@@ -14,9 +14,14 @@ jobs:
       - uses: actions/setup-java@v1
         with:
           java-version: 11
+      #Decode key ring file from secrets and put it to ~/.gradle/
+      - name: Decode
+        run: |
+          echo "${{secrets.SECRET_KEY_RING_FILE}}" > ~/.gradle/secring.gpg.b64
+          base64 -d ~/.gradle/secring.gpg.b64 > ~/.gradle/secring.gpg
       - uses: eskatos/gradle-command-action@v1
         with:
-          arguments: :core:bintrayUpload -PdryRun=false
+          arguments: :core:uploadArchives -Psigning.keyId=${{secrets.SIGNING_KEY_ID}} -Psigning.password=${{ secrets.SIGNING_PASSWORD }} -Psigning.secretKeyRingFile=$(echo ~/.gradle/secring.gpg)
         env:
-          BINTRAY_USER: yatsinar
-          BINTRAY_KEY: ${{ secrets.BINTRAY_KEY }}
+          ORG_GRADLE_PROJECT_mavenCentralRepositoryUsername: ${{ secrets.OSSRH_USERNAME }}
+          ORG_GRADLE_PROJECT_mavenCentralRepositoryPassword: ${{ secrets.OSSRH_PASSWORD }}

@@ -3,14 +3,13 @@ import Versions.rxJavaVersion
 
 
 object Versions {
-    const val kotlinVersion = "1.3.70"
+    const val kotlinVersion = "1.4.31"
     const val rxJavaVersion = "2.2.18"
 }
 
 object BuildScriptDependencies {
     const val gradlePlugin = "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion"
     const val gradleAndroid = "com.android.tools.build:gradle:3.6.1"
-    const val novodaBintray = "com.novoda:bintray-release:0.9.1"
 }
 
 object Dependencies {

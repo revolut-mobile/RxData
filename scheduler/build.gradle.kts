@@ -2,11 +2,13 @@ plugins {
     id("com.android.library")
     kotlin("android")
     id("kotlin-android-extensions")
+    id("com.vanniktech.maven.publish")
+    `maven-override`
 }
 
 android {
     compileSdkVersion(29)
-    buildToolsVersion("29.0.2")
+    buildToolsVersion("29.0.3")
 
 
     defaultConfig {
@@ -26,7 +28,6 @@ android {
             )
         }
     }
-
 }
 
 dependencies {
@@ -38,7 +39,5 @@ dependencies {
     implementation("io.reactivex.rxjava2:rxjava:2.2.18")
 
     testImplementation("junit:junit:4.13")
-    testImplementation("org.robolectric:robolectric:4.3")
+    testImplementation("org.robolectric:robolectric:4.4")
 }
-
-apply(from = "$rootDir/gradle/publish_bintray.gradle.kts")
