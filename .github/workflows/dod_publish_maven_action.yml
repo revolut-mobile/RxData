@@ -5,7 +5,7 @@ on:
     types: [published]
 
 jobs:
-  publish-bintray:
+  publish-maven:
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/dod')
 
