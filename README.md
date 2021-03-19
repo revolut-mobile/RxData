@@ -33,6 +33,19 @@ DataObservableDelegate.
 
 Scheduler is completely optional library for Android modules. 
 
+## Snapshots
+
+For using snapshot dependencies use the separate repository:
+
+```
+allprojects {
+    repositories {
+        maven(url = "https://s01.oss.sonatype.org/content/repositories/snapshots/")
+    }
+}
+```
+
+
 ## Examples
 
 You can find several examples of how RxData is used in Revolut application [in this Revolut Tech article.][1]
