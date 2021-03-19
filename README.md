@@ -6,13 +6,32 @@ RxData is Android mobile library for building reactive data flow in Android appl
 
 ## Installation
 
-Gradle is the only supported build configuration - please add the below line to your build.gradle:
+Gradle is the only supported build configuration. Since 1.4 RxData is hosted on mavenCentral, 
+in order to fetch the dependency, add the following lines to your project level `build.gradle.kts`:
 
 ```
-implementation 'com.revolut.rxdata:dod:1.2.5'
-implementation 'com.revolut.rxdata:core:1.2.8'
+allprojects {
+    repositories {
+        mavenCentral()
+    }
+}
 ```
 
+And then to the module level `build.gradle.kts`:
+
+```
+dependencies {
+    implementation 'com.revolut.rxdata:dod:1.4'
+    implementation 'com.revolut.rxdata:core:1.4'
+    implementation 'com.revolut.rxdata:scheduler:1.4'
+}
+```
+
+You can add only the necessary modules. Core would be required everywhere for defining interfaces 
+and working with models, but core only needed in data layer, where you are going to be implementing 
+DataObservableDelegate. 
+
+Scheduler is completely optional library for Android modules. 
 
 ## Examples
 

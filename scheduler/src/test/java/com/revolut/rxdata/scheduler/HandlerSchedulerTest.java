@@ -721,7 +721,7 @@ public final class HandlerSchedulerTest {
         }
     }
 
-    private void assertNullArgumentException(IllegalArgumentException e, String argumentName) {
+    private void assertNullArgumentException(NullPointerException e, String argumentName) {
         String message = Objects.requireNonNull(e.getMessage());
         assertTrue(message.contains("Parameter specified as non-null is null"));
         assertTrue(message.contains(argumentName));
@@ -732,19 +732,19 @@ public final class HandlerSchedulerTest {
         try {
             scheduler.scheduleDirect(null);
             fail();
-        } catch (IllegalArgumentException e) {
+        } catch (NullPointerException e) {
             assertNullArgumentException(e, "run");
         }
         try {
             scheduler.scheduleDirect(null, 1, MINUTES);
             fail();
-        } catch (IllegalArgumentException e) {
+        } catch (NullPointerException e) {
             assertNullArgumentException(e, "run");
         }
         try {
             scheduler.scheduleDirect(new CountingRunnable(), 1, null);
             fail();
-        } catch (IllegalArgumentException e) {
+        } catch (NullPointerException e) {
             assertNullArgumentException(e, "unit");
         }
     }
@@ -778,19 +778,19 @@ public final class HandlerSchedulerTest {
         try {
             worker.schedule(null);
             fail();
-        } catch (IllegalArgumentException e) {
+        } catch (NullPointerException e) {
             assertNullArgumentException(e, "run");
         }
         try {
             worker.schedule(null, 1, MINUTES);
             fail();
-        } catch (IllegalArgumentException e) {
+        } catch (NullPointerException e) {
             assertNullArgumentException(e, "run");
         }
         try {
             worker.schedule(new CountingRunnable(), 1, null);
             fail();
-        } catch (IllegalArgumentException e) {
+        } catch (NullPointerException e) {
             assertNullArgumentException(e, "unit");
         }
     }

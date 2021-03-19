@@ -1,5 +1,7 @@
 plugins {
     kotlin("jvm")
+    id("com.vanniktech.maven.publish")
+    `maven-override`
 }
 
 dependencies {
@@ -9,5 +11,3 @@ dependencies {
     testImplementation(Dependencies.jUnit)
     testImplementation(Dependencies.mockitoKotlin)
 }
-
-apply(from = "$rootDir/gradle/publish_bintray.gradle.kts")
