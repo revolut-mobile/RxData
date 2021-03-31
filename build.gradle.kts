@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+
 plugins {
     `kotlin-dsl`
 }
@@ -30,5 +32,17 @@ allprojects {
                 includeModule("org.jetbrains.kotlinx", "kotlinx-html-jvm")
             }
         }
+    }
+}
+
+subprojects {
+    tasks.withType<KotlinCompile> {
+        kotlinOptions {
+            jvmTarget = "1.8"
+        }
+    }
+    tasks.withType<JavaCompile> {
+        targetCompatibility = JavaVersion.VERSION_1_8.toString()
+        sourceCompatibility = JavaVersion.VERSION_1_8.toString()
     }
 }
