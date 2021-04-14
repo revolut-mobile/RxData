@@ -752,4 +752,30 @@ class DataObservableDelegateTest {
         assertEquals(1, counter.get())
     }
 
+    @Test
+    fun `WHEN forceReload dod switchMaps to the same forceReload dod THEN emissions are muted after 2nd iteration`(){
+        dataObservableDelegate.observe(params = params, forceReload = true)
+            .switchMap {
+                dataObservableDelegate.observe(params = params, forceReload = true)
+            }
+            .test()
+            .apply {
+                ioScheduler.triggerActions()
+            }
+            .assertValueCount(4)
+    }
+
+    @Test
+    fun `WHEN dod switchMaps to the same forceReload dod THEN emissions are muted after 2nd iteration`(){
+        dataObservableDelegate.observe(params = params)
+            .switchMap {
+                dataObservableDelegate.observe(params = params, forceReload = true)
+            }
+            .test()
+            .apply {
+                ioScheduler.triggerActions()
+            }
+            .assertValueCount(4)
+    }
+
 }

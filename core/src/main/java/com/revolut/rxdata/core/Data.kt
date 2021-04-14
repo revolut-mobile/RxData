@@ -21,4 +21,27 @@ data class Data<out T>(
     val content: T? = null,
     val error: Throwable? = null,
     val loading: Boolean = false
-)
+) {
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as Data<*>
+
+        if (content != other.content) return false
+        if (error?.javaClass != other.error?.javaClass) return false
+        if (error?.message != other.error?.message) return false
+        if (loading != other.loading) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = content?.hashCode() ?: 0
+        result = 31 * result + (error?.javaClass?.hashCode() ?: 0)
+        result = 31 * result + (error?.message?.hashCode() ?: 0)
+        result = 31 * result + loading.hashCode()
+        return result
+    }
+}
