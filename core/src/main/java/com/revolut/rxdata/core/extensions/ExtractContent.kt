@@ -53,5 +53,7 @@ fun <T, R> Observable<Data<T>>.extractContent(
     Data<R>(
         content = content
     )
-}.filter { it.content != null }.map { it.content }
+}.filter { it.content != null }
+    .map { it.content!! }
+    .distinctUntilChanged()
 

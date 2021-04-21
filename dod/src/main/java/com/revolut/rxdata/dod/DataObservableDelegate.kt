@@ -130,7 +130,9 @@ class DataObservableDelegate<Params : Any, Domain : Any> constructor(
                     .startWith(Data(null, loading = true))
             }
 
-            observable.muteExcessiveEmits()
+            observable
+                .distinctUntilChanged()
+                .muteExcessiveEmits()
         }
 
 
@@ -143,8 +145,7 @@ class DataObservableDelegate<Params : Any, Domain : Any> constructor(
                 val lastHashCode = triple.lastHashCode()
 
                 when (triple.size) {
-                    0, 1 -> true
-                    2 -> firstHashCode != lastHashCode
+                    0, 1, 2 -> true
                     else -> firstHashCode != lastHashCode && lastHashCode != triple.middleHashCode()
                 }
             }

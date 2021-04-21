@@ -25,7 +25,7 @@ import io.reactivex.Observable
     message = "Dangerous method, ignores errors, replace with extractContent(filterLoading = false, strictErrors = false)"
 )
 fun <T> Observable<Data<T>>.extractData(): Observable<T> =
-    filter { it.content != null }.map { it.content!! }
+    filter { it.content != null }.map { it.content!! }.distinctUntilChanged()
 
 @Deprecated(
     message = "Use newer extractContent for content extraction, extracting errors shouldn't be done separately"

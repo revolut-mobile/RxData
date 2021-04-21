@@ -6,7 +6,6 @@ import org.junit.Test
 class ShiftingTripleTest {
 
 
-
     @Test(expected = NoSuchElementException::class)
     fun `WHEN first called and No elements THEN NoSuchElementException`() {
         val triple = ShiftingTriple<String>()
