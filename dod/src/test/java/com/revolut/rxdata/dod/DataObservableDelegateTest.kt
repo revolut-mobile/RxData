@@ -361,7 +361,7 @@ class DataObservableDelegateTest {
         dataObservableDelegate.observe(params = params, forceReload = false)
             .extractContent(consumeErrors = { error, _ -> error.takeUnless { it is CustomException } })
             .test().apply { ioScheduler.triggerActions() }
-            .assertValues(cachedDomain, cachedDomain)
+            .assertValues(cachedDomain)
 
         assertEquals(cachedDomain, memCache[params])
         verify(fromNetwork, times(1)).invoke(eq(params))
