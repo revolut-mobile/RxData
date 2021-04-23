@@ -126,30 +126,22 @@ class DataObservableDelegate<Params : Any, Domain : Any> constructor(
             } else {
                 sharedStorageRequest.getOrLoad(params to loading)
                     .toObservable()
-                    .concatWith(subject)
+                    .concatWith(subject.doOnNext { println(it) })
                     .startWith(Data(null, loading = true))
             }
 
             observable
                 .distinctUntilChanged()
-                .muteExcessiveEmits()
+                .muteRepetitiveReloading()
         }
 
-
-    private fun Observable<Data<Domain>>.muteExcessiveEmits(): Observable<Data<Domain>> =
-        this.scan(ShiftingTriple<Data<Domain>>(), { triple, newEmit ->
-            triple.add(newEmit)
+    private fun Observable<Data<Domain>>.muteRepetitiveReloading(): Observable<Data<Domain>> =
+        this.scan(ReloadingDataScanner<Domain>(), { scanner, newEmit ->
+            scanner.registerData(newEmit)
         }).skip(1)
-            .filter { triple ->
-                val firstHashCode = triple.firstHashCode()
-                val lastHashCode = triple.lastHashCode()
+            .filter { scanner -> scanner.shouldEmitCurrentData() }
+            .map { it.currentData() }
 
-                when (triple.size) {
-                    0, 1, 2 -> true
-                    else -> firstHashCode != lastHashCode && lastHashCode != triple.middleHashCode()
-                }
-            }
-            .map { it.lastElement }
 
     /**
      * Replaces the data in both caches (Memory, Persistent storage)
