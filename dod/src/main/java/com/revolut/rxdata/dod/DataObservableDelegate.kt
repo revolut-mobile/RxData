@@ -126,12 +126,22 @@ class DataObservableDelegate<Params : Any, Domain : Any> constructor(
             } else {
                 sharedStorageRequest.getOrLoad(params to loading)
                     .toObservable()
-                    .concatWith(subject)
+                    .concatWith(subject.doOnNext { println(it) })
                     .startWith(Data(null, loading = true))
             }
 
-            observable.distinctUntilChanged()
+            observable
+                .distinctUntilChanged()
+                .muteRepetitiveReloading()
         }
+
+    private fun Observable<Data<Domain>>.muteRepetitiveReloading(): Observable<Data<Domain>> =
+        this.scan(ReloadingDataScanner<Domain>(), { scanner, newEmit ->
+            scanner.registerData(newEmit)
+        }).skip(1)
+            .filter { scanner -> scanner.shouldEmitCurrentData() }
+            .map { it.currentData() }
+
 
     /**
      * Replaces the data in both caches (Memory, Persistent storage)

@@ -225,4 +225,17 @@ class ExtractContentKtTest {
 
     //endregion
 
+
+    //region
+    @Test
+    fun `extractContent emit distinct content`() {
+        Observable.just(
+            Data(null, null, loading = true),
+            Data("3", null, loading = false),
+            Data("3", null, loading = true),
+            Data("4", null, loading = false)
+        ).extractContent().test().assertValues("3", "4")
+    }
+    //endregion
+
 }

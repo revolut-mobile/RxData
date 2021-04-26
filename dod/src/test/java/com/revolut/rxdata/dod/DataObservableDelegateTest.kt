@@ -361,7 +361,7 @@ class DataObservableDelegateTest {
         dataObservableDelegate.observe(params = params, forceReload = false)
             .extractContent(consumeErrors = { error, _ -> error.takeUnless { it is CustomException } })
             .test().apply { ioScheduler.triggerActions() }
-            .assertValues(cachedDomain, cachedDomain)
+            .assertValues(cachedDomain)
 
         assertEquals(cachedDomain, memCache[params])
         verify(fromNetwork, times(1)).invoke(eq(params))
@@ -625,16 +625,16 @@ class DataObservableDelegateTest {
         val testObserver2 =
             dataObservableDelegate.observe(params = params, forceReload = true).test()
 
-        testObserver1.assertValueCount(2)
-        testObserver1.assertValueAt(1, Data(content = cachedDomain, error = null, loading = true))
+        testObserver1.assertValueCount(1)
+        testObserver1.assertValueAt(0, Data(content = cachedDomain, error = null, loading = false))
 
         testObserver2.assertValueCount(1)
         testObserver2.assertValueAt(0, Data(content = cachedDomain, error = null, loading = true))
 
         ioScheduler.advanceTimeBy(10, TimeUnit.MILLISECONDS)
 
-        testObserver1.assertValueCount(3)
-        testObserver1.assertValueAt(2, Data(content = domain, error = null, loading = false))
+        testObserver1.assertValueCount(2)
+        testObserver1.assertValueAt(1, Data(content = domain, error = null, loading = false))
 
         testObserver2.assertValueCount(2)
         testObserver2.assertValueAt(1, Data(content = domain, error = null, loading = false))
@@ -645,26 +645,26 @@ class DataObservableDelegateTest {
         val testObserver3 =
             dataObservableDelegate.observe(params = params, forceReload = true).test()
 
-        testObserver1.assertValueCount(4)
-        testObserver1.assertValueAt(3, Data(content = domain, error = null, loading = true))
+        testObserver1.assertValueCount(2)
+        testObserver1.assertValueAt(1, Data(content = domain, error = null, loading = false))
 
-        testObserver2.assertValueCount(3)
-        testObserver2.assertValueAt(2, Data(content = domain, error = null, loading = true))
+        testObserver2.assertValueCount(2)
+        testObserver2.assertValueAt(1, Data(content = domain, error = null, loading = false))
 
         testObserver3.assertValueCount(1)
         testObserver3.assertValueAt(0, Data(content = domain, error = null, loading = true))
 
         ioScheduler.advanceTimeBy(10, TimeUnit.MILLISECONDS)
 
-        testObserver1.assertValueCount(5)
+        testObserver1.assertValueCount(3)
         testObserver1.assertValueAt(
-            4,
+            2,
             Data(content = domain, error = backendException, loading = false)
         )
 
-        testObserver2.assertValueCount(4)
+        testObserver2.assertValueCount(3)
         testObserver2.assertValueAt(
-            3,
+            2,
             Data(content = domain, error = backendException, loading = false)
         )
 
@@ -750,6 +750,60 @@ class DataObservableDelegateTest {
         ioScheduler.triggerActions()
 
         assertEquals(1, counter.get())
+    }
+
+    @Test
+    fun `WHEN forceReload dod switchMaps to the same forceReload dod THEN emissions are muted after 2nd iteration`(){
+        whenever(fromNetwork.invoke(eq(params))).thenReturn(Single.fromCallable { cachedDomain })
+        storage[params] = cachedDomain
+        memCache.remove(params)
+
+        dataObservableDelegate.observe(params = params, forceReload = true).take(100)
+            .switchMap {
+                dataObservableDelegate.observe(params = params, forceReload = true).take(100)
+            }
+            .test()
+            .apply {
+                ioScheduler.triggerActions()
+            }
+            .assertValueCount(5)
+    }
+
+    @Test
+    fun `WHEN dod switchMaps to the same forceReload dod THEN emissions are muted after 2nd iteration`(){
+        whenever(fromNetwork.invoke(eq(params))).thenReturn(Single.fromCallable { cachedDomain })
+        storage[params] = cachedDomain
+        memCache.remove(params)
+
+        dataObservableDelegate.observe(params = params).take(100)
+            .switchMap {
+                dataObservableDelegate.observe(params = params, forceReload = true).take(100)
+                    .doOnNext {
+                        println(it)
+                    }
+            }
+            .test()
+            .apply {
+                ioScheduler.triggerActions()
+            }
+            .assertValueCount(5)
+    }
+
+    @Test
+    fun `WHEN dod switchMaps to the same forceReload dod AND fromNetwork returns errors THEN emissions are muted after 2nd iteration`(){
+        whenever(fromNetwork.invoke(eq(params))).thenReturn(Single.fromCallable { throw backendException })
+        storage[params] = cachedDomain
+        memCache.remove(params)
+
+        dataObservableDelegate.observe(params = params).take(100)
+            .switchMap {
+                dataObservableDelegate.observe(params = params, forceReload = true).take(100)
+            }
+            .test()
+            .apply {
+                ioScheduler.triggerActions()
+            }
+            .assertValueCount(6)
     }
 
 }
