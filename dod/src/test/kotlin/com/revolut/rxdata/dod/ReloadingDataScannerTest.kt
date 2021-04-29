@@ -16,8 +16,11 @@ class ReloadingDataScannerTest {
     }
 
     @Test
-    fun `Loading from DB, then reloading in background, data changing once				`(){
+    fun `Loading from DB, then reloading in background, data not changing`(){
         newEvent(Data(null, loading = true), shouldEmit = true)
+        newEvent(Data("a", loading = true), shouldEmit = true)
+        newEvent(Data("a", loading = false), shouldEmit = true)
+
         newEvent(Data("a", loading = true), shouldEmit = true)
         newEvent(Data("a", loading = false), shouldEmit = true)
 
@@ -26,9 +29,37 @@ class ReloadingDataScannerTest {
 
         newEvent(Data("a", loading = true), shouldEmit = false)
         newEvent(Data("a", loading = false), shouldEmit = false)
+    }
 
-        newEvent(Data("a", loading = true), shouldEmit = false)
-        newEvent(Data("a", loading = false), shouldEmit = false)
+    @Test
+    fun `Loading from DB, then reloading in background, data changing twice`(){
+        newEvent(Data(null, loading = true), shouldEmit = true)
+        newEvent(Data("a", loading = true), shouldEmit = true)
+        newEvent(Data("a", loading = false), shouldEmit = true)
+
+        newEvent(Data("a", loading = true), shouldEmit = true)
+        newEvent(Data("b", loading = false), shouldEmit = true)
+
+        newEvent(Data("b", loading = true), shouldEmit = true)
+        newEvent(Data("b", loading = false), shouldEmit = true)
+
+        newEvent(Data("b", loading = true), shouldEmit = true)
+        newEvent(Data("b", loading = false), shouldEmit = true)
+
+        newEvent(Data("b", loading = true), shouldEmit = false)
+        newEvent(Data("b", loading = false), shouldEmit = false)
+
+        newEvent(Data("b", loading = true), shouldEmit = false)
+        newEvent(Data("c", loading = false), shouldEmit = true)
+
+        newEvent(Data("c", loading = true), shouldEmit = true)
+        newEvent(Data("c", loading = false), shouldEmit = true)
+
+        newEvent(Data("c", loading = true), shouldEmit = true)
+        newEvent(Data("c", loading = false), shouldEmit = true)
+
+        newEvent(Data("c", loading = true), shouldEmit = false)
+        newEvent(Data("c", loading = false), shouldEmit = false)
     }
 
     @Test
@@ -37,23 +68,25 @@ class ReloadingDataScannerTest {
         newEvent(Data("a", loading = true), shouldEmit = true)
         newEvent(Data("a", loading = false), shouldEmit = true)
 
-        newEvent(Data("a", loading = true), shouldEmit = false)
+        newEvent(Data("a", loading = true), shouldEmit = true)
+        newEvent(Data("a", loading = false, error = IOException("HTTP 500. All tests are green!")), shouldEmit = true)
+
+        newEvent(Data("a", loading = true), shouldEmit = true)
         newEvent(Data("a", loading = false, error = IOException("HTTP 500. All tests are green!")), shouldEmit = true)
 
         newEvent(Data("a", loading = true), shouldEmit = false)
         newEvent(Data("a", loading = false, error = IOException("HTTP 500. All tests are green!")), shouldEmit = false)
-
-        newEvent(Data("a", loading = true), shouldEmit = false)
-        newEvent(Data("a", loading = false, error = IOException("HTTP 500. All tests are green!")), shouldEmit = false)
     }
-
 
     @Test
     fun `Loading from memory, then DB, then reloading in background with errors`(){
         newEvent(Data("a", loading = true), shouldEmit = true)
         newEvent(Data("a", loading = false), shouldEmit = true)
 
-        newEvent(Data("a", loading = true), shouldEmit = false)
+        newEvent(Data("a", loading = true), shouldEmit = true)
+        newEvent(Data("a", loading = false, error = IOException("HTTP 500. All tests are green!")), shouldEmit = true)
+
+        newEvent(Data("a", loading = true), shouldEmit = true)
         newEvent(Data("a", loading = false, error = IOException("HTTP 500. All tests are green!")), shouldEmit = true)
 
         newEvent(Data("a", loading = true), shouldEmit = false)

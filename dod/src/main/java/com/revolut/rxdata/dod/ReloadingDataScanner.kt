@@ -6,8 +6,12 @@ class ReloadingDataScanner<T> {
 
     private var currentData: Data<T>? = null
     private var emitCurrent: Boolean = false
+
+    private var previousLoadingEmitted: Boolean = true
+
     private var lastLoadingAndErrorHash: Int? = null
     private var lastLoadedContentErrorHash: Int? = null
+
     private var loadingTimes: Int = 0
 
     fun registerData(data: Data<T>): ReloadingDataScanner<T> {
@@ -19,13 +23,14 @@ class ReloadingDataScanner<T> {
             if (lastLoadingAndErrorHash === null || currentContentErrorHash == lastLoadingAndErrorHash) {
                 loadingTimes++
             }
+            emitCurrent = loadingTimes <= 2
+            previousLoadingEmitted = emitCurrent
         } else {
-            if (currentContentErrorHash != lastLoadingAndErrorHash) {
+            if (currentContentErrorHash != lastLoadingAndErrorHash && currentContentErrorHash != lastLoadedContentErrorHash) {
                 loadingTimes = 1
             }
+            emitCurrent = (currentContentErrorHash != lastLoadedContentErrorHash) || previousLoadingEmitted
         }
-
-        emitCurrent = (loadingTimes <= 1) && currentContentErrorHash != lastLoadedContentErrorHash
 
         if (data.loading) {
             lastLoadingAndErrorHash = currentContentErrorHash

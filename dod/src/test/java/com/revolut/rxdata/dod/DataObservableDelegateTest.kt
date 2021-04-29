@@ -625,7 +625,7 @@ class DataObservableDelegateTest {
         val testObserver2 =
             dataObservableDelegate.observe(params = params, forceReload = true).test()
 
-        testObserver1.assertValueCount(1)
+        testObserver1.assertValueCount(2)
         testObserver1.assertValueAt(0, Data(content = cachedDomain, error = null, loading = false))
 
         testObserver2.assertValueCount(1)
@@ -633,8 +633,8 @@ class DataObservableDelegateTest {
 
         ioScheduler.advanceTimeBy(10, TimeUnit.MILLISECONDS)
 
-        testObserver1.assertValueCount(2)
-        testObserver1.assertValueAt(1, Data(content = domain, error = null, loading = false))
+        testObserver1.assertValueCount(3)
+        testObserver1.assertValueAt(2, Data(content = domain, error = null, loading = false))
 
         testObserver2.assertValueCount(2)
         testObserver2.assertValueAt(1, Data(content = domain, error = null, loading = false))
@@ -645,26 +645,26 @@ class DataObservableDelegateTest {
         val testObserver3 =
             dataObservableDelegate.observe(params = params, forceReload = true).test()
 
-        testObserver1.assertValueCount(2)
-        testObserver1.assertValueAt(1, Data(content = domain, error = null, loading = false))
+        testObserver1.assertValueCount(4)
+        testObserver1.assertValueAt(3, Data(content = domain, error = null, loading = true))
 
-        testObserver2.assertValueCount(2)
-        testObserver2.assertValueAt(1, Data(content = domain, error = null, loading = false))
+        testObserver2.assertValueCount(3)
+        testObserver2.assertValueAt(2, Data(content = domain, error = null, loading = true))
 
         testObserver3.assertValueCount(1)
         testObserver3.assertValueAt(0, Data(content = domain, error = null, loading = true))
 
         ioScheduler.advanceTimeBy(10, TimeUnit.MILLISECONDS)
 
-        testObserver1.assertValueCount(3)
+        testObserver1.assertValueCount(5)
         testObserver1.assertValueAt(
-            2,
+            4,
             Data(content = domain, error = backendException, loading = false)
         )
 
-        testObserver2.assertValueCount(3)
+        testObserver2.assertValueCount(4)
         testObserver2.assertValueAt(
-            2,
+            3,
             Data(content = domain, error = backendException, loading = false)
         )
 
@@ -766,7 +766,7 @@ class DataObservableDelegateTest {
             .apply {
                 ioScheduler.triggerActions()
             }
-            .assertValueCount(5)
+            .assertValueCount(6)
     }
 
     @Test
@@ -786,7 +786,7 @@ class DataObservableDelegateTest {
             .apply {
                 ioScheduler.triggerActions()
             }
-            .assertValueCount(5)
+            .assertValueCount(6)
     }
 
     @Test
@@ -803,7 +803,7 @@ class DataObservableDelegateTest {
             .apply {
                 ioScheduler.triggerActions()
             }
-            .assertValueCount(6)
+            .assertValueCount(8)
     }
 
 }
