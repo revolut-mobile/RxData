@@ -1,15 +1,15 @@
 plugins {
     kotlin("jvm")
     id("java-library")
-    id("com.vanniktech.maven.publish")
-    `maven-override`
 }
 
 dependencies {
-    implementation(project(":rx-core"))
     implementation(Dependencies.kotlinStdLib)
-    implementation(Dependencies.rxJava)
+    implementation(Dependencies.coroutinesCore)
 
+    implementation(project(":flow-core"))
+
+    testImplementation(Dependencies.coroutinesCoreTest)
     testImplementation(Dependencies.jUnit)
     testImplementation(Dependencies.mockitoKotlin)
 }
