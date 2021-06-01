@@ -21,18 +21,10 @@ class DataFlowDelegate<Params : Any, Domain : Any>(
     suspend fun observe(params: Params, forceReload: Boolean): Flow<Data<Domain>> = flow {
         val fromMemory = fromMemory.invoke(params)
         val loading = fromMemory == null || forceReload
-        val sharedFlow = sharedFlow(params)
         emitAll(
             getFromStorage(params = params, fromMemoryCache = fromMemory)
                 .flatMapMerge { fromStorage ->
                     getFromNetworkIfNeeded(loading, fromStorage, params)
-                }
-                .catch {
-                    //error in database
-                    val dataWithLoading =
-                        Data<Domain>(loading = true)
-                    emit(dataWithLoading)
-                    emitAll(sharedFlow)
                 }
                 .onStart {
                     emit(
@@ -89,6 +81,13 @@ class DataFlowDelegate<Params : Any, Domain : Any>(
                 }
                 emit(Data(content = fromStorage))
             }.flowOn(DataFlowDelegateDispatchers.ioDispatcher())
+                .catch { throwable ->
+                    //error in database
+                    val dataWithLoading =
+                        Data<Domain>(error = throwable, loading = true)
+                    emit(dataWithLoading)
+                    emitAll(sharedFlow(params))
+                }
         }
 
 

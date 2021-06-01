@@ -77,6 +77,38 @@ class DataFlowDelegateTest {
             assertEquals(expectedSecond, actualValues.last())
         }
 
+    @Test
+    fun `FORCE observing data when  memory cache IS EMPTY and storage throw an exception`() =
+        runBlockingTest {
+            val networkResult = "I'm from network with correct param!"
+            val param = "param"
+            val delegate = DataFlowDelegate<String, String>(
+                fromNetwork = {
+                    networkResult
+                },
+                fromMemory = {
+                    null
+                },
+                fromStorage = {
+                    throw IOException("No data")
+                }
+            )
+
+            val expectedFirst = Data<String>(loading = true)
+            val expectedSecond =
+                Data<String>(loading = true, error = IOException("No data"))
+
+            val expectedThird =
+                Data<String>(loading = false, content = "I'm from network with correct param!")
+
+            val actualValues = delegate.observe(params = param, forceReload = false)
+                .collectValues(3)
+
+            assertEquals(expectedFirst, actualValues.first())
+            assertEquals(expectedSecond, actualValues[1])
+            assertEquals(expectedThird, actualValues.last())
+        }
+
 
     @Test
     fun `FORCE observing data when memory cache IS EMPTY and storage IS NOT EMPTY`() =
