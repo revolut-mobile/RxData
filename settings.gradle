@@ -1,2 +1,4 @@
-include ':dod', ':sample', ':scheduler', ':core'
-rootProject.name='RxData'
+include ':flow-core'
+include ':dfd'
+include ':dod', ':sample', ':scheduler', ':rx-core', ':dfd', ':flow-core'
+rootProject.name = 'RxData'
