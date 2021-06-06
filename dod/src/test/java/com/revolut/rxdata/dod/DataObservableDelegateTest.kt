@@ -32,7 +32,6 @@ private typealias Domain = String
  * limitations under the License.
  *
  */
-
 class DataObservableDelegateTest {
 
     private val params: Params = 0
@@ -753,7 +752,7 @@ class DataObservableDelegateTest {
     }
 
     @Test
-    fun `WHEN forceReload dod switchMaps to the same forceReload dod THEN emissions are muted after 2nd iteration`(){
+    fun `WHEN forceReload dod switchMaps to the same forceReload dod THEN emissions are muted after 2nd iteration`() {
         whenever(fromNetwork.invoke(eq(params))).thenReturn(Single.fromCallable { cachedDomain })
         storage[params] = cachedDomain
         memCache.remove(params)
@@ -770,7 +769,7 @@ class DataObservableDelegateTest {
     }
 
     @Test
-    fun `WHEN dod switchMaps to the same forceReload dod THEN emissions are muted after 2nd iteration`(){
+    fun `WHEN dod switchMaps to the same forceReload dod THEN emissions are muted after 2nd iteration`() {
         whenever(fromNetwork.invoke(eq(params))).thenReturn(Single.fromCallable { cachedDomain })
         storage[params] = cachedDomain
         memCache.remove(params)
@@ -790,7 +789,7 @@ class DataObservableDelegateTest {
     }
 
     @Test
-    fun `WHEN dod switchMaps to the same forceReload dod AND fromNetwork returns errors THEN emissions are muted after 2nd iteration`(){
+    fun `WHEN dod switchMaps to the same forceReload dod AND fromNetwork returns errors THEN emissions are muted after 2nd iteration`() {
         whenever(fromNetwork.invoke(eq(params))).thenReturn(Single.fromCallable { throw backendException })
         storage[params] = cachedDomain
         memCache.remove(params)
@@ -806,4 +805,58 @@ class DataObservableDelegateTest {
             .assertValueCount(8)
     }
 
+    @Test
+    fun `WHEN update all THEN should trigger toMemory(), toStorage() AND emit new data`() {
+        storage[params] = domain
+        memCache[params] = domain
+        val newValue: Domain = "I am new value"
+        whenever(toStorage.invoke(params, newValue)).thenAnswer { invocation ->
+            storage[invocation.arguments[0] as Params] = invocation.arguments[1] as Domain
+            Unit
+        }
+        whenever(toMemory.invoke(params, newValue)).thenAnswer { invocation ->
+            storage[invocation.arguments[0] as Params] = invocation.arguments[1] as Domain
+            Unit
+        }
+
+        dataObservableDelegate.updateAll(params, newValue)
+
+        val actualValueFromMemory = memCache[params]
+        val actualValueFromStorage = storage[params]
+
+        assertEquals(newValue, actualValueFromMemory)
+        assertEquals(newValue, actualValueFromStorage)
+
+
+        val actualUpdated = dataObservableDelegate.observe(params = params, forceReload = false)
+            .test()
+            .values()[0]
+
+        assertEquals(Data(newValue), actualUpdated)
+    }
+
+    @Test
+    fun `WHEN update memory THEN should trigger toMemory() AND emit new data`() {
+        storage[params] = domain
+        memCache[params] = domain
+        val newValue: Domain = "I am new value"
+
+        whenever(toMemory.invoke(params, newValue)).thenAnswer { invocation ->
+            storage[invocation.arguments[0] as Params] = invocation.arguments[1] as Domain
+            Unit
+        }
+
+        dataObservableDelegate.updateMemory(params, newValue)
+
+        val actualValueFromMemory = memCache[params]
+
+        assertEquals(newValue, actualValueFromMemory)
+
+        val actualUpdated = dataObservableDelegate.observe(params = params, forceReload = false)
+            .test()
+            .values()[0]
+
+        assertEquals(Data(newValue), actualUpdated)
+    }
 }
+

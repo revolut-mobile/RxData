@@ -11,6 +11,7 @@ import kotlinx.coroutines.test.runBlockingTest
 import org.junit.Before
 import org.junit.Test
 import java.io.IOException
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CopyOnWriteArrayList
 
 
@@ -18,8 +19,13 @@ class DataFlowDelegateTest {
 
     private val testDispatcher = TestCoroutineDispatcher()
 
+    private val memoryCache = ConcurrentHashMap<String, String>()
+    private val storage = ConcurrentHashMap<String, String>()
+
     @Before
     fun setUp() {
+        memoryCache.clear()
+        storage.clear()
         DataFlowDelegateDispatchers.setIoDispatcher(testDispatcher)
     }
 
@@ -236,6 +242,134 @@ class DataFlowDelegateTest {
         assertEquals(expectedFirst, actualValues.first())
         assertEquals(expectedSecond, actualValues.last())
     }
+
+
+    @Test
+    fun `WHEN update all THEN should trigger toMemory(), toStorage() AND emit new data`() =
+        runBlockingTest {
+            val networkResult = "I'm from network with correct param!"
+            val param = "param"
+
+            val delegate = DataFlowDelegate<String, String>(
+                fromNetwork = { p ->
+                    if (p == param) {
+                        networkResult
+                    } else {
+                        error("Unknown param")
+                    }
+                },
+                fromMemory = { p ->
+                    memoryCache[p]
+                },
+                fromStorage = { p ->
+                    storage[p]
+                },
+                toStorage = { params, value ->
+                    storage[params] = value
+                },
+                toMemory = { params, value ->
+                    memoryCache[params] = value
+                }
+            )
+
+            val newValue = "I am new value"
+            delegate.updateAll(param, newValue)
+
+            val actualValueFromMemory = memoryCache[param]
+            val actualValueFromStorage = storage[param]
+
+            assertEquals(newValue, actualValueFromMemory)
+            assertEquals(newValue, actualValueFromStorage)
+
+            val actualEmitted = delegate.observe(params = param, forceReload = false)
+                .collectValues(1)[0]
+
+            assertEquals(Data(newValue), actualEmitted)
+        }
+
+    @Test
+    fun `WHEN update memory THEN should trigger toMemory() AND emit new data`() =
+        runBlockingTest {
+            val networkResult = "I'm from network with correct param!"
+            val param = "param"
+
+            val delegate = DataFlowDelegate<String, String>(
+                fromNetwork = { p ->
+                    if (p == param) {
+                        networkResult
+                    } else {
+                        error("Unknown param")
+                    }
+                },
+                fromMemory = { p ->
+                    memoryCache[p]
+                },
+                fromStorage = { p ->
+                    storage[p]
+                },
+                toStorage = { params, value ->
+                    storage[params] = value
+                },
+                toMemory = { params, value ->
+                    memoryCache[params] = value
+                }
+            )
+
+            val newValue = "I am new value"
+            delegate.updateMemory(param, newValue)
+
+            val actualValueFromMemory = memoryCache[param]
+
+            assertEquals(newValue, actualValueFromMemory)
+
+            val actualEmitted = delegate.observe(params = param, forceReload = false)
+                .collectValues(1)[0]
+
+            assertEquals(Data(newValue), actualEmitted)
+        }
+
+    @Test
+    fun `WHEN update storage THEN should trigger toStorage() AND emit new data`() =
+        runBlockingTest {
+            val networkResult = "I'm from network with correct param!"
+            val param = "param"
+
+            val delegate = DataFlowDelegate<String, String>(
+                fromNetwork = { p ->
+                    if (p == param) {
+                        networkResult
+                    } else {
+                        error("Unknown param")
+                    }
+                },
+                fromMemory = { p ->
+                    null
+                },
+                fromStorage = { p ->
+                    storage[p]
+                },
+                toStorage = { params, value ->
+                    storage[params] = value
+                },
+                toMemory = { params, value ->
+                    memoryCache[params] = value
+                }
+            )
+
+            val newValue = "I am new value"
+            delegate.updateStorage(param, newValue)
+
+            val actualValueFromStorage = storage[param]
+
+            assertEquals(newValue, actualValueFromStorage)
+
+            val values = delegate.observe(params = param, forceReload = false)
+                .collectValues(3)
+
+            assertEquals(Data<String>(loading = true), values[0])
+            assertEquals(Data(content = newValue, loading = true), values[1])
+            assertEquals(Data(content = networkResult), values[2])
+        }
 
 
     private suspend fun <T> Flow<T>.collectValues(count: Int): List<T> {
