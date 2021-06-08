@@ -858,5 +858,40 @@ class DataObservableDelegateTest {
 
         assertEquals(Data(newValue), actualUpdated)
     }
+
+    @Test
+    fun `WHEN update storage THEN should trigger toStorage() AND emit new data`() {
+        storage[params] = domain
+
+        val newValue: Domain = "I am new value"
+        val fromNetworkResult = "From network"
+
+        whenever(toStorage.invoke(params, newValue)).thenAnswer { invocation ->
+            storage[invocation.arguments[0] as Params] = invocation.arguments[1] as Domain
+            Unit
+        }
+        whenever(fromNetwork.invoke(eq(params))).thenReturn(Single.fromCallable { fromNetworkResult })
+
+        dataObservableDelegate.updateStorage(params, newValue)
+        val actualValueFromMemory = storage[params]
+
+        assertEquals(newValue, actualValueFromMemory)
+
+        val actualUpdatedObserver =
+            dataObservableDelegate.observe(params = params, forceReload = false)
+                .test()
+
+        ioScheduler.triggerActions()
+
+
+
+
+        assertEquals(Data<Domain>(loading = true), actualUpdatedObserver.values()[0])
+        assertEquals(Data(content = newValue, loading = true), actualUpdatedObserver.values()[1])
+        assertEquals(
+            Data(content = fromNetworkResult, loading = false),
+            actualUpdatedObserver.values()[2]
+        )
+    }
 }
 
