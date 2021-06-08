@@ -11,14 +11,15 @@ class DataFlowDelegate<Params : Any, Domain : Any>(
     private val fromMemory: (params: Params) -> Domain? = { _ -> null },
     private val toMemory: (params: Params, Domain) -> Unit = { _, _ -> Unit },
     private val fromStorage: suspend (params: Params) -> Domain? = { _ -> null },
-    private val toStorage: suspend (params: Params, Domain) -> Unit = { _, _ -> Unit }
+    private val toStorage: suspend (params: Params, Domain) -> Unit = { _, _ -> Unit },
+    private val onRemove: (params: Params) -> Unit = { _ -> Unit },
 ) {
 
     private val flowsMap = ConcurrentHashMap<Params, MutableSharedFlow<Data<Domain>>>()
 
     @FlowPreview
     @ExperimentalCoroutinesApi
-    suspend fun observe(params: Params, forceReload: Boolean): Flow<Data<Domain>> = flow {
+    fun observe(params: Params, forceReload: Boolean): Flow<Data<Domain>> = flow {
         val fromMemory = fromMemory.invoke(params)
         val loading = fromMemory == null || forceReload
         emitAll(
@@ -46,7 +47,7 @@ class DataFlowDelegate<Params : Any, Domain : Any>(
         fromStorage: Data<Domain>,
         params: Params
     ): Flow<Data<Domain>> {
-        val sharedFlow = sharedFlow(params)
+        val sharedFlow = flow(params)
         return if (loading) {
             val data = fromStorage.copy(loading = true)
             sharedFlow.emit(data)
@@ -86,7 +87,7 @@ class DataFlowDelegate<Params : Any, Domain : Any>(
                     val dataWithLoading =
                         Data<Domain>(error = throwable, loading = true)
                     emit(dataWithLoading)
-                    emitAll(sharedFlow(params))
+                    emitAll(flow(params))
                 }
         }
 
@@ -95,7 +96,7 @@ class DataFlowDelegate<Params : Any, Domain : Any>(
         params: Params,
         storageData: Domain?
     ): Flow<Data<Domain>> {
-        val flow = sharedFlow(params)
+        val flow = flow(params)
         return flow {
             val fromNetwork = fromNetwork.invoke(params)
             toMemory.invoke(params, fromNetwork)
@@ -114,7 +115,57 @@ class DataFlowDelegate<Params : Any, Domain : Any>(
             }
     }
 
-    private fun sharedFlow(params: Params): MutableSharedFlow<Data<Domain>> = flowsMap.getOrCreate(
+    /**
+     * Replaces the data in both caches (Memory, Persistent storage)
+     * and emits an update.
+     */
+    suspend fun updateAll(params: Params, domain: Domain) {
+        toMemory(params, domain)
+        toStorage(params, domain)
+        flow(params).emit(Data(content = domain))
+    }
+
+    /**
+     * Replaces the data and emits an update in memory cache.
+     */
+    suspend fun updateMemory(params: Params, domain: Domain) {
+        toMemory(params, domain)
+        flow(params).emit(Data(content = domain))
+    }
+
+    /**
+     * Subscribers observing this DOD will be notified with
+     * Data(fromMemory(params), loading = false, error = null).
+     * @param where must return true if subscriber requires notification.
+     */
+    suspend fun notifyFromMemory(
+        error: Throwable? = null,
+        loading: Boolean = false,
+        where: (Params) -> Boolean
+    ) {
+        flowsMap.forEach { (params, subject) ->
+            if (where(params)) {
+                subject.emit(Data(content = fromMemory(params), error = error, loading = loading))
+            }
+        }
+    }
+
+    /**
+     * Replaces the data and emits an update in persistent storage cache.
+     *
+     * /!\ Memory cache won't be dropped or replaced /!\
+     */
+    suspend fun updateStorage(params: Params, domain: Domain) {
+        toStorage(params, domain)
+        flow(params).emit(Data(content = domain))
+    }
+
+    suspend fun remove(params: Params) {
+        onRemove(params)
+        flow(params).emit(Data(content = null))
+    }
+
+    private fun flow(params: Params): MutableSharedFlow<Data<Domain>> = flowsMap.getOrCreate(
         params,
         creator = { MutableSharedFlow() })
 }
