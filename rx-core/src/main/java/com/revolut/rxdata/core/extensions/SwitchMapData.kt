@@ -82,9 +82,7 @@ fun <T, R> Observable<Data<T>>.switchMapDataContentSingle(block: (T) -> Single<R
         }
     }
 
-fun <T, R> Observable<Data<T>>.switchMapData(
-    block: (T) -> Observable<Data<R>>
-): Observable<Data<R>> =
+fun <T, R> Observable<Data<T>>.switchMapData(block: (T) -> Observable<Data<R>>): Observable<Data<R>> =
     switchMap { original ->
         if (original.content != null) {
             try {
