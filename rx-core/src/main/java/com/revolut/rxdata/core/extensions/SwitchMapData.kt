@@ -87,12 +87,17 @@ fun <T, R> Observable<Data<T>>.switchMapData(block: (T) -> Observable<Data<R>>):
         if (original.content != null) {
             try {
                 block(original.content)
-            } catch (t: Throwable) {
+            } catch (error: Throwable) {
                 Observable.just(
-                    Data<R>(
-                        error = combineErrors(original.error, t),
-                        loading = original.loading
+                    Data(
+                        error = error,
+                        loading = false
                     )
+                )
+            }.map { transformed ->
+                transformed.copy(
+                    loading = combineLoading(original.loading, transformed.loading),
+                    error = combineErrors(original.error, transformed.error)
                 )
             }
         } else {
@@ -103,7 +108,12 @@ fun <T, R> Observable<Data<T>>.switchMapData(block: (T) -> Observable<Data<R>>):
                 )
             )
         }
-    }
+    }.distinctUntilChanged()
+
+private fun combineLoading(
+    firstLoading: Boolean,
+    secondLoading: Boolean,
+): Boolean = firstLoading || secondLoading
 
 private fun combineErrors(
     firstError: Throwable?,
