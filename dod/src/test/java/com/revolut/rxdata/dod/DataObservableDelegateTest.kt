@@ -778,9 +778,6 @@ class DataObservableDelegateTest {
         dataObservableDelegate.observe(params = params).take(100)
             .switchMap {
                 dataObservableDelegate.observe(params = params, forceReload = true).take(100)
-                    .doOnNext {
-                        println(it)
-                    }
             }
             .test()
             .apply {

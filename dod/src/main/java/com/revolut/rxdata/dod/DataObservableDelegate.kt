@@ -126,7 +126,7 @@ class DataObservableDelegate<Params : Any, Domain : Any> constructor(
             } else {
                 sharedStorageRequest.getOrLoad(params to loading)
                     .toObservable()
-                    .concatWith(subject.doOnNext { println(it) })
+                    .concatWith(subject)
                     .startWith(Data(null, loading = true))
             }
 
