@@ -22,22 +22,9 @@ buildscript {
 }
 
 allprojects {
-//    plugins.withId("com.vanniktech.maven.publish") {
-//        mavenPublish {
-//            sonatypeHost = "S01"
-//        }
-//    }
     repositories {
         mavenCentral()
         google()
-//        jcenter {
-//            content {
-//                // https://youtrack.jetbrains.com/issue/IDEA-261387
-//                includeModule("org.jetbrains.trove4j", "trove4j")
-//                includeModule("org.jetbrains.dokka", "dokka-gradle-plugin")
-//                includeModule("org.jetbrains.kotlinx", "kotlinx-html-jvm")
-//            }
-//        }
     }
 }
 

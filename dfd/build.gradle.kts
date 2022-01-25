@@ -8,8 +8,8 @@ dependencies {
     implementation(Dependencies.kotlinStdLib)
     implementation(Dependencies.coroutinesCore)
     implementation(project(":model"))
-    implementation(project(":flow-extensions"))
 
+    testImplementation(project(":flow-extensions"))
     testImplementation(Dependencies.coroutinesCoreTest)
     testImplementation(Dependencies.turbineCoroutinesTest)
     testImplementation(Dependencies.jUnit)
