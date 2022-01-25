@@ -14,6 +14,7 @@ jobs:
       - uses: actions/setup-java@v2
         with:
           java-version: 11
+          distribution: 'adopt-hotspot'
       #Decode key ring file from secrets and put it to ~/.gradle/
       - name: Decode
         run: 'echo "${{secrets.SIGNING_SECRET_KEY_RING_FILE}}" | base64 -d > secring.gpg'
