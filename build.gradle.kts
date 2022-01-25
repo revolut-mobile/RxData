@@ -15,23 +15,29 @@ buildscript {
         classpath(BuildScriptDependencies.gradleAndroid)
         classpath(BuildScriptDependencies.gradlePlugin)
 
-        classpath("com.vanniktech:gradle-maven-publish-plugin:0.13.0")
+        classpath("com.vanniktech:gradle-maven-publish-plugin:0.18.0")
         classpath("org.jetbrains.dokka:dokka-gradle-plugin:1.4.10.2")
+        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:1.5.20")
     }
 }
 
 allprojects {
+//    plugins.withId("com.vanniktech.maven.publish") {
+//        mavenPublish {
+//            sonatypeHost = "S01"
+//        }
+//    }
     repositories {
         mavenCentral()
         google()
-        jcenter {
-            content {
-                // https://youtrack.jetbrains.com/issue/IDEA-261387
-                includeModule("org.jetbrains.trove4j", "trove4j")
-                includeModule("org.jetbrains.dokka", "dokka-gradle-plugin")
-                includeModule("org.jetbrains.kotlinx", "kotlinx-html-jvm")
-            }
-        }
+//        jcenter {
+//            content {
+//                // https://youtrack.jetbrains.com/issue/IDEA-261387
+//                includeModule("org.jetbrains.trove4j", "trove4j")
+//                includeModule("org.jetbrains.dokka", "dokka-gradle-plugin")
+//                includeModule("org.jetbrains.kotlinx", "kotlinx-html-jvm")
+//            }
+//        }
     }
 }
 

@@ -1,0 +1,26 @@
+name: "flow-extensions: publish (maven)"
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  publish-maven:
+    runs-on: ubuntu-latest
+    if: contains(github.ref, 'flow-extensions')
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-java@v1
+        with:
+          java-version: 11
+      #Decode key ring file from secrets and put it to ~/.gradle/
+      - name: Decode
+        shell: bash
+        run: 'echo "${{secrets.SIGNING_SECRET_KEY_RING_FILE}}" | base64 -d > secring.gpg'
+      - uses: eskatos/gradle-command-action@v1
+        with:
+          arguments: :flow-extensions:uploadArchives -Psigning.keyId=${{secrets.SIGNING_KEY_ID}} -Psigning.password=${{ secrets.SIGNING_PASSWORD }} -Psigning.secretKeyRingFile=../secring.gpg
+        env:
+          ORG_GRADLE_PROJECT_mavenCentralRepositoryUsername: ${{ secrets.OSSRH_USERNAME }}
+          ORG_GRADLE_PROJECT_mavenCentralRepositoryPassword: ${{ secrets.OSSRH_PASSWORD }}

@@ -4,14 +4,14 @@ import Versions.rxJavaVersion
 
 
 object Versions {
-    const val kotlinVersion = "1.4.31"
+    const val kotlinVersion = "1.6.10"
     const val rxJavaVersion = "2.2.18"
-    const val coroutinesCoreVersion = "1.5.0"
+    const val coroutinesCoreVersion = "1.6.0"
 }
 
 object BuildScriptDependencies {
     const val gradlePlugin = "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion"
-    const val gradleAndroid = "com.android.tools.build:gradle:3.6.1"
+    const val gradleAndroid = "com.android.tools.build:gradle:7.0.4"
 }
 
 object Dependencies {
@@ -20,11 +20,12 @@ object Dependencies {
 
     const val coroutinesCore =
         "org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutinesCoreVersion"
-
     const val coroutinesCoreTest = "org.jetbrains.kotlinx:kotlinx-coroutines-test:$coroutinesCoreVersion"
+    const val turbineCoroutinesTest = "app.cash.turbine:turbine:0.7.0"
 
     const val jUnit = "junit:junit:4.13"
     const val mockitoKotlin = "com.nhaarman:mockito-kotlin:1.5.0"
+    const val mockitoInline = "org.mockito:mockito-inline:3.8.0"
 }
 
 

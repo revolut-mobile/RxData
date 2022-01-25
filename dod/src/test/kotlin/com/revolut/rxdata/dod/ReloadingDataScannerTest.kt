@@ -1,6 +1,6 @@
 package com.revolut.rxdata.dod
 
-import com.revolut.rxdata.core.Data
+import com.revolut.data.model.Data
 import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Test

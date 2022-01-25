@@ -1,6 +1,6 @@
 package com.revolut.rxdata.dod
 
-import com.revolut.rxdata.core.Data
+import com.revolut.data.model.Data
 import io.reactivex.Completable
 import io.reactivex.Observable
 import io.reactivex.Observable.concat

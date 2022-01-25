@@ -1,4 +1,9 @@
-include ':flow-core'
-include ':dfd'
-include ':dod', ':sample', ':scheduler', ':rx-core', ':dfd', ':flow-core'
+include ':sample',
+        ':model',
+        ':dod',
+        ':rx-extensions',
+        ':scheduler',
+        ':dfd',
+        ':flow-extensions'
+
 rootProject.name = 'RxData'

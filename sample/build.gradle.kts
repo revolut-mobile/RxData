@@ -6,14 +6,13 @@ plugins {
 }
 
 android {
-    compileSdkVersion(29)
-    buildToolsVersion("29.0.2")
-
+    compileSdkVersion(31)
+    buildToolsVersion("29.0.3")
 
     defaultConfig {
         applicationId = "com.revolut.rxdata.sample"
         minSdkVersion(19)
-        targetSdkVersion(29)
+        targetSdkVersion(31)
         versionCode = 1
         versionName = "1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
