@@ -21,7 +21,7 @@ import kotlinx.coroutines.flow.combine
  *
  */
 
-fun <A : Any, B : Any> combineLatestData(
+fun <A : Any, B : Any> combineData(
     a: Flow<Data<A>>,
     b: Flow<Data<B>>
 ): Flow<Data<Pair<A, B>>> = combine(a, b) { _a, _b ->
@@ -44,9 +44,9 @@ fun <A : Any, B : Any> combineLatestData(
 }
 
 
-fun <A : Any, B : Any, C : Any> combineLatestData(
+fun <A : Any, B : Any, C : Any> combineData(
     a: Flow<Data<A>>,
     b: Flow<Data<B>>,
     c: Flow<Data<C>>
-): Flow<Data<Triple<A, B, C>>> = combineLatestData(combineLatestData(a, b), c)
+): Flow<Data<Triple<A, B, C>>> = combineData(combineData(a, b), c)
     .mapData { (ab, c) -> Triple(ab.first, ab.second, c) }

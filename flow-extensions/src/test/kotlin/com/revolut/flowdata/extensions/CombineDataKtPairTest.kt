@@ -22,7 +22,7 @@ class CombineDataKtPairTest {
         aFlow = MutableSharedFlow()
         bFlow = MutableSharedFlow()
 
-        testCombinedAB = combineLatestData(aFlow, bFlow)
+        testCombinedAB = combineData(aFlow, bFlow)
             .mapData { (a, b) -> a + b }
             .extractContent()
     }

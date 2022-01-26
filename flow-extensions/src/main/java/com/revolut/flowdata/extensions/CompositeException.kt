@@ -55,3 +55,20 @@ class CompositeException(
             .joinToString()
 
 }
+
+internal fun combineErrors(
+    firstError: Throwable?,
+    secondError: Throwable?
+): Throwable? {
+    return when {
+        firstError != null && secondError != null -> CompositeException(
+            listOf(
+                firstError,
+                secondError
+            )
+        )
+        firstError != null -> firstError
+        secondError != null -> secondError
+        else -> null
+    }
+}

@@ -22,7 +22,7 @@ import kotlinx.coroutines.flow.*
  */
 
 @ExperimentalCoroutinesApi
-fun <T, R : Any> Flow<Data<T>>.switchMapDataContent(block: (T) -> Flow<R>): Flow<Data<R>> =
+fun <T, R : Any> Flow<Data<T>>.flatMapLatestContent(block: (T) -> Flow<R>): Flow<Data<R>> =
     flatMapLatest { original ->
         val originalContent = original.content
         if (originalContent != null) {
@@ -49,61 +49,8 @@ fun <T, R : Any> Flow<Data<T>>.switchMapDataContent(block: (T) -> Flow<R>): Flow
                 )
             )
         }
-    }
-
-
-@ExperimentalCoroutinesApi
-fun <T, R : Any> Flow<Data<T>>.switchMapData(block: (T) -> Flow<Data<R>>): Flow<Data<R>> =
-    flatMapLatest { original ->
-        val originalContent = original.content
-
-        if (originalContent != null) {
-            try {
-                block(originalContent)
-            } catch (error: Throwable) {
-                flowOf(
-                    Data(
-                        error = error,
-                        loading = false
-                    )
-                )
-            }.map { transformed ->
-                transformed.copy(
-                    loading = combineLoading(original.loading, transformed.loading),
-                    error = combineErrors(original.error, transformed.error)
-                )
-            }
-        } else {
-            flowOf(
-                Data(
-                    error = original.error,
-                    loading = original.loading
-                )
-            )
-        }
     }.distinctUntilChanged()
 
-private fun combineLoading(
-    firstLoading: Boolean,
-    secondLoading: Boolean,
-): Boolean = firstLoading || secondLoading
-
-private fun combineErrors(
-    firstError: Throwable?,
-    secondError: Throwable?
-): Throwable? {
-    return when {
-        firstError != null && secondError != null -> CompositeException(
-            listOf(
-                firstError,
-                secondError
-            )
-        )
-        firstError != null -> firstError
-        secondError != null -> secondError
-        else -> null
-    }
-}
 
 private fun <T> T?.toData(loading: Boolean = false, error: Throwable? = null): Data<T> =
     Data(

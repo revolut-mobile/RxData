@@ -3,8 +3,7 @@ package com.revolut.flowdata.extensions
 import app.cash.turbine.test
 import com.revolut.data.model.Data
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -12,10 +11,11 @@ import org.junit.Test
 import org.junit.experimental.runners.Enclosed
 import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
+import org.junit.runners.Parameterized.Parameters
 
 @ExperimentalCoroutinesApi
 @RunWith(Enclosed::class)
-class SwitchMapDataKtTest {
+class FlatMapLatestContentDataKtTest {
 
 
     @RunWith(Parameterized::class)
@@ -27,7 +27,7 @@ class SwitchMapDataKtTest {
 
         companion object {
             @JvmStatic
-            @Parameterized.Parameters(name = "{index}: A: loading={0}, B: loading = {1}, C: loading = {2}")
+            @Parameters(name = "{index}: A: loading={0}, B: loading = {1}, C: loading = {2}")
             fun data() = listOf(
                 arrayOf(true, true, true),
                 arrayOf(true, false, true),
@@ -41,7 +41,7 @@ class SwitchMapDataKtTest {
             val observableA = newDataObservable(loadingA)
             val observableB = newDataObservable(loadingB)
 
-            observableA.switchMapData { observableB }
+            observableA.flatMapLatestContentDataFlow { observableB }
                 .assertLoading(loadingC)
         }
 
@@ -55,7 +55,6 @@ class SwitchMapDataKtTest {
         }
     }
 
-
     @RunWith(Parameterized::class)
     class ErrorTest(
         private val errorA: Throwable?,
@@ -65,7 +64,7 @@ class SwitchMapDataKtTest {
 
         companion object {
             @JvmStatic
-            @Parameterized.Parameters(name = "{index}: A: error = {0}, B: error = {1}, C: error = {2}")
+            @Parameters(name = "{index}: A: error = {0}, B: error = {1}, C: error = {2}")
             fun data() = listOf(
                 arrayOf<Throwable?>(null, null, null),
                 arrayOf<Throwable?>(TestThrowable("A"), null, TestThrowable("A")),
@@ -88,7 +87,7 @@ class SwitchMapDataKtTest {
             val observableA = newDataObservable(error = errorA)
             val observableB = newDataObservable(error = errorB)
 
-            observableA.switchMapData { observableB }.assertError(errorC)
+            observableA.flatMapLatestContentDataFlow { observableB }.assertError(errorC)
         }
 
         private fun newDataObservable(loading: Boolean = false, error: Throwable? = null) =

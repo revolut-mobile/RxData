@@ -22,7 +22,7 @@ class CombineDataKtTripleTest {
         bSubject = MutableSharedFlow()
         cSubject = MutableSharedFlow()
 
-        testCombinedABC = combineLatestData(aSubject, bSubject, cSubject)
+        testCombinedABC = combineData(aSubject, bSubject, cSubject)
             .mapData { (a, b, c) -> a + b + c }
             .extractContent()
     }
