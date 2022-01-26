@@ -21,7 +21,7 @@ jobs:
         run: 'echo "${{secrets.SIGNING_SECRET_KEY_RING_FILE}}" | base64 -d > secring.gpg'
       - uses: eskatos/gradle-command-action@v1
         with:
-          arguments: :dod:uploadArchives -Psigning.keyId=${{secrets.SIGNING_KEY_ID}} -Psigning.password=${{ secrets.SIGNING_PASSWORD }} -Psigning.secretKeyRingFile=../secring.gpg
+          arguments: :dod:publish -Psigning.keyId=${{secrets.SIGNING_KEY_ID}} -Psigning.password=${{ secrets.SIGNING_PASSWORD }} -Psigning.secretKeyRingFile=../secring.gpg
         env:
           ORG_GRADLE_PROJECT_mavenCentralRepositoryUsername: ${{ secrets.OSSRH_USERNAME }}
           ORG_GRADLE_PROJECT_mavenCentralRepositoryPassword: ${{ secrets.OSSRH_PASSWORD }}
