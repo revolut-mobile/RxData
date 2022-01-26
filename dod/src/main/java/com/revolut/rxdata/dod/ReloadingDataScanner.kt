@@ -1,6 +1,7 @@
 package com.revolut.rxdata.dod
 
-import com.revolut.rxdata.core.Data
+import com.revolut.data.model.Data
+
 
 class ReloadingDataScanner<T> {
 
