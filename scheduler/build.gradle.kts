@@ -42,3 +42,8 @@ dependencies {
     testImplementation("org.robolectric:robolectric:4.3")
 }
 
+plugins.withId("com.vanniktech.maven.publish") {
+    mavenPublish {
+        sonatypeHost = SonatypeHost.S01
+    }
+}
