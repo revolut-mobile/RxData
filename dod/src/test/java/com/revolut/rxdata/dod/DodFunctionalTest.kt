@@ -4,19 +4,27 @@ import com.nhaarman.mockito_kotlin.mock
 import com.nhaarman.mockito_kotlin.whenever
 import com.revolut.rxdata.core.extensions.takeUntilLoaded
 import io.reactivex.Single
-import io.reactivex.plugins.RxJavaPlugins
-import io.reactivex.schedulers.Schedulers
-import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.RepeatedTest
+import org.junit.jupiter.api.TestInstance
+import org.junit.jupiter.api.parallel.Execution
+import org.junit.jupiter.api.parallel.ExecutionMode.CONCURRENT
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.MethodSource
+import strikt.api.expectThat
+import strikt.assertions.isEqualTo
+import strikt.assertions.isTrue
 import java.lang.Thread.sleep
+import java.util.concurrent.TimeUnit.MILLISECONDS
 import java.util.concurrent.TimeUnit.SECONDS
 import java.util.concurrent.atomic.AtomicInteger
 
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class DodFunctionalTest {
 
-    private val domain: String = "domain_model"
+    private val networkCallDurationMillis = 300L
+    private val maxNetworkEventAwaitMillis = networkCallDurationMillis * 2
 
-    private lateinit var fromNetwork: (Unit) -> Single<String>
+    private val fromNetwork: (Unit) -> Single<String> = mock()
 
     private val fromNetworkScoped: DataObservableDelegate<Unit, String>.(Unit) -> Single<String> =
         { fromNetwork(it) }
@@ -26,56 +34,69 @@ class DodFunctionalTest {
     private val toStorage: (Unit, String) -> Unit = { _, _ -> }
     private val fromStorage: (Unit) -> String = { "domain_$it" }
 
-    private lateinit var dataObservableDelegate: DataObservableDelegate<Unit, String>
+    private val dataObservableDelegate = DataObservableDelegate(
+        fromNetwork = fromNetworkScoped,
+        fromMemory = fromMemory,
+        toMemory = toMemory,
+        fromStorage = fromStorage,
+        toStorage = toStorage
+    )
 
-    private val computationScheduler = Schedulers.computation()
-    private val ioScheduler = Schedulers.io()
-
-    @BeforeEach
-    fun before() {
-        fromNetwork = mock()
-
-        dataObservableDelegate = DataObservableDelegate(
-            fromNetwork = fromNetworkScoped,
-            fromMemory = fromMemory,
-            toMemory = toMemory,
-            fromStorage = fromStorage,
-            toStorage = toStorage
-        )
-
-        RxJavaPlugins.setIoSchedulerHandler { ioScheduler }
-        RxJavaPlugins.setComputationSchedulerHandler { computationScheduler }
-
+    init {
         whenever(fromNetwork.invoke(Unit)).thenReturn(Single.fromCallable {
-            sleep(1000)
-            domain
+            println("Network Request subscribed")
+            sleep(networkCallDurationMillis)
+            println("Network Request emitting")
+            "domain_model"
         })
+    }
+
+    companion object {
+
+        @JvmStatic
+        fun params(): List<Int> = (1..10).toList()
+
+    }
+
+    @ParameterizedTest
+    @MethodSource("params")
+    @Execution(CONCURRENT)
+    fun `WHEN dod concurrently subscribed THEN all subscribers should receive terminal event`(attempt: Int) {
+        // given
+        sleep(attempt * 5L)
+
+        // when
+        val testSubscription = dataObservableDelegate.observe(Unit, forceReload = true)
+            .takeUntilLoaded()
+            .test()
+
+        testSubscription.awaitTerminalEvent(maxNetworkEventAwaitMillis, MILLISECONDS)
+
+        // then
+        expectThat(testSubscription.isTerminated).isTrue()
     }
 
     @RepeatedTest(5)
     fun attemptRaceCondition() {
-        // schedule 20 DODs simultaneously reloading the same network request
         val completedCounter = AtomicInteger(0)
         val count = 20
 
         (1..count).map {
-            sleep(50)
-            val thread = Thread {
+            sleep(networkCallDurationMillis / count)
+            Thread {
                 dataObservableDelegate.observe(Unit, forceReload = true)
                     .takeUntilLoaded()
                     .doOnComplete {
                         completedCounter.incrementAndGet()
                     }
                     .test()
-                    .awaitTerminalEvent(300, SECONDS)
-            }
-            thread.start()
-            thread
+                    .awaitTerminalEvent(networkCallDurationMillis * 2, SECONDS)
+            }.apply { start() }
         }.forEach {
-            it.join(1000)
+            it.join(maxNetworkEventAwaitMillis)
         }
 
-        assert(completedCounter.get() == count) { "Only $completedCounter streams completed" }
+        expectThat(completedCounter.get()).isEqualTo(count)
     }
 
 }

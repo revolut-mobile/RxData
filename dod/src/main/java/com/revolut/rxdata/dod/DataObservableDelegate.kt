@@ -12,8 +12,6 @@ import io.reactivex.subjects.PublishSubject
 import io.reactivex.subjects.Subject
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
-import java.util.concurrent.locks.ReentrantReadWriteLock
-import kotlin.concurrent.write
 
 /*
  * Copyright (C) 2019 Revolut
@@ -50,14 +48,11 @@ class DataObservableDelegate<Params : Any, Domain : Any> constructor(
     private val networkSubscriptionsContainer: DisposableContainer = DodGlobal.disposableContainer
 ) {
 
-    private val networkLock = ReentrantReadWriteLock()
-
     private val subjectsMap = ConcurrentHashMap<Params, Subject<Data<Domain>>>()
     private val sharedNetworkRequest: SharedSingleRequest<Params, Domain> =
         SharedSingleRequest { params ->
             this.fromNetwork(params)
                 .doOnSuccess { domain ->
-                    //networkLock.write {
                     failedNetworkRequests.remove(params)
 
                     toMemory(params, domain)
@@ -65,7 +60,6 @@ class DataObservableDelegate<Params : Any, Domain : Any> constructor(
 
                     val data = Data(content = domain)
                     subject(params).onNext(data)
-                    //}
                 }
 
         }

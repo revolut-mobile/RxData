@@ -8,6 +8,7 @@ import io.reactivex.plugins.RxJavaPlugins
 import io.reactivex.schedulers.TestScheduler
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import java.io.IOException
 import java.util.concurrent.TimeUnit
@@ -65,7 +66,7 @@ class DataObservableDelegateTest {
     private val memCache = hashMapOf<Params, Domain>()
     private val storage = hashMapOf<Params, Domain>()
 
-    @BeforeAll
+    @BeforeEach
     fun setUp() {
         fromNetwork = mock()
         toMemory = mock()

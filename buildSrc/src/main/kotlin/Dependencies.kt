@@ -29,7 +29,7 @@ object Dependencies {
 
     const val jUnit = "junit:junit:4.13"
 
-    const val assertJCore = "org.assertj:assertj-core:$assertjVersion"
+    const val strikt = "io.strikt:strikt-core:0.34.0"
     const val jupiterApi = "org.junit.jupiter:junit-jupiter-api:$junitVersion"
     const val jupiterParams = "org.junit.jupiter:junit-jupiter-params:$junitVersion"
     const val jupiterEngine = "org.junit.jupiter:junit-jupiter-engine:$junitVersion"
