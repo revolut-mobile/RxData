@@ -1,16 +1,16 @@
 package com.revolut.rxdata.dod
 
 import com.revolut.data.model.Data
-import org.junit.Assert.assertEquals
-import org.junit.Before
-import org.junit.Test
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.Test
 import java.io.IOException
 
 class ReloadingDataScannerTest {
 
     private lateinit var scanner: ReloadingDataScanner<String>
 
-    @Before
+    @BeforeAll
     fun setUp() {
         scanner = ReloadingDataScanner()
     }

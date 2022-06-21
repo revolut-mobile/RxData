@@ -6,9 +6,9 @@ import com.revolut.rxdata.core.extensions.extractContent
 import io.reactivex.Single
 import io.reactivex.plugins.RxJavaPlugins
 import io.reactivex.schedulers.TestScheduler
-import org.junit.Assert.assertEquals
-import org.junit.Before
-import org.junit.Test
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.Test
 import java.io.IOException
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
@@ -65,7 +65,7 @@ class DataObservableDelegateTest {
     private val memCache = hashMapOf<Params, Domain>()
     private val storage = hashMapOf<Params, Domain>()
 
-    @Before
+    @BeforeAll
     fun setUp() {
         fromNetwork = mock()
         toMemory = mock()

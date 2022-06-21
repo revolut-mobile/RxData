@@ -3,10 +3,10 @@ package com.revolut.rxdata.dod
 import io.reactivex.Observable
 import io.reactivex.plugins.RxJavaPlugins
 import io.reactivex.schedulers.TestScheduler
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotEquals
-import org.junit.Before
-import org.junit.Test
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotEquals
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.Test
 
 /*
  * Copyright (C) 2019 Revolut
@@ -31,7 +31,7 @@ class SharedObservableRequestTest {
 
     private val ioScheduler: TestScheduler = TestScheduler()
 
-    @Before
+    @BeforeAll
     fun setUp() {
         RxJavaPlugins.setIoSchedulerHandler { ioScheduler }
     }

@@ -1,6 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="CompilerConfiguration">
-    <bytecodeTargetLevel target="11" />
+    <bytecodeTargetLevel target="11">
+      <module name="RxData.dfd.main" target="1.8" />
+      <module name="RxData.dfd.test" target="1.8" />
+      <module name="RxData.dod.main" target="1.8" />
+      <module name="RxData.dod.test" target="1.8" />
+      <module name="RxData.flow-extensions.main" target="1.8" />
+      <module name="RxData.flow-extensions.test" target="1.8" />
+      <module name="RxData.model.main" target="1.8" />
+      <module name="RxData.model.test" target="1.8" />
+      <module name="RxData.rx-extensions.main" target="1.8" />
+      <module name="RxData.rx-extensions.test" target="1.8" />
+    </bytecodeTargetLevel>
   </component>
 </project>
