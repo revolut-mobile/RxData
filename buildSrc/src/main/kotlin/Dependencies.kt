@@ -1,4 +1,3 @@
-import Versions.assertjVersion
 import Versions.coroutinesCoreVersion
 import Versions.junitVersion
 import Versions.kotlinVersion
@@ -10,7 +9,6 @@ object Versions {
     const val rxJavaVersion = "2.2.18"
     const val coroutinesCoreVersion = "1.6.0"
     const val junitVersion = "5.7.2"
-    const val assertjVersion = "3.19.0"
 }
 
 object BuildScriptDependencies {
@@ -26,8 +24,6 @@ object Dependencies {
         "org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutinesCoreVersion"
     const val coroutinesCoreTest = "org.jetbrains.kotlinx:kotlinx-coroutines-test:$coroutinesCoreVersion"
     const val turbineCoroutinesTest = "app.cash.turbine:turbine:0.7.0"
-
-    const val jUnit = "junit:junit:4.13"
 
     const val jupiterApi = "org.junit.jupiter:junit-jupiter-api:$junitVersion"
     const val jupiterParams = "org.junit.jupiter:junit-jupiter-params:$junitVersion"

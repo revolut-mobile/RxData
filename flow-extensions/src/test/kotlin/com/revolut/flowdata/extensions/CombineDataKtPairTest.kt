@@ -5,9 +5,9 @@ import com.revolut.flow_core.extensions.runFlowTest
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
-import org.junit.Assert.assertEquals
-import org.junit.Before
-import org.junit.Test
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 
 @ExperimentalCoroutinesApi
 class CombineDataKtPairTest {
@@ -17,7 +17,7 @@ class CombineDataKtPairTest {
 
     private lateinit var testCombinedAB: Flow<String>
 
-    @Before
+    @BeforeEach
     fun setup() {
         aFlow = MutableSharedFlow()
         bFlow = MutableSharedFlow()

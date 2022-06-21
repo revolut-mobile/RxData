@@ -3,6 +3,7 @@ package com.revolut.rxdata.dod
 import com.revolut.data.model.Data
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import java.io.IOException
 
@@ -10,7 +11,7 @@ class ReloadingDataScannerTest {
 
     private lateinit var scanner: ReloadingDataScanner<String>
 
-    @BeforeAll
+    @BeforeEach
     fun setUp() {
         scanner = ReloadingDataScanner()
     }

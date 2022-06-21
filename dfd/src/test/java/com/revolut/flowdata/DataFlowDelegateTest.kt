@@ -7,9 +7,9 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.TestCoroutineDispatcher
-import org.junit.Assert.assertEquals
-import org.junit.Before
-import org.junit.Test
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 import java.io.IOException
 import java.util.concurrent.CopyOnWriteArrayList
 
@@ -18,7 +18,7 @@ class DataFlowDelegateTest {
 
     private val testDispatcher = TestCoroutineDispatcher()
 
-    @Before
+    @BeforeEach
     fun setUp() {
         DataFlowDelegateDispatchers.setIoDispatcher(testDispatcher)
     }

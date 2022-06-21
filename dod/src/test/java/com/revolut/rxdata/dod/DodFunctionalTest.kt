@@ -6,6 +6,7 @@ import com.revolut.rxdata.core.extensions.takeUntilLoaded
 import io.reactivex.Single
 import org.junit.jupiter.api.RepeatedTest
 import org.junit.jupiter.api.TestInstance
+import org.junit.jupiter.api.TestInstance.Lifecycle.PER_CLASS
 import org.junit.jupiter.api.parallel.Execution
 import org.junit.jupiter.api.parallel.ExecutionMode.CONCURRENT
 import org.junit.jupiter.params.ParameterizedTest
@@ -15,7 +16,7 @@ import java.util.concurrent.TimeUnit.MILLISECONDS
 import java.util.concurrent.TimeUnit.SECONDS
 import java.util.concurrent.atomic.AtomicInteger
 
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@TestInstance(PER_CLASS)
 class DodFunctionalTest {
 
     private val networkCallDurationMillis = 300L

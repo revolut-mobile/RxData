@@ -6,6 +6,7 @@ import io.reactivex.schedulers.TestScheduler
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
 /*
@@ -31,7 +32,7 @@ class SharedObservableRequestTest {
 
     private val ioScheduler: TestScheduler = TestScheduler()
 
-    @BeforeAll
+    @BeforeEach
     fun setUp() {
         RxJavaPlugins.setIoSchedulerHandler { ioScheduler }
     }

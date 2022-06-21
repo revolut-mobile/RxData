@@ -10,7 +10,9 @@ dependencies {
     implementation(Dependencies.kotlinStdLib)
     implementation(project(":model"))
 
-    testImplementation(Dependencies.jUnit)
+    testImplementation(Dependencies.jupiterApi)
+    testImplementation(Dependencies.jupiterEngine)
+    testImplementation(Dependencies.jupiterParams)
     testImplementation(Dependencies.mockitoKotlin)
     testImplementation(Dependencies.mockitoInline)
     testImplementation(Dependencies.coroutinesCoreTest)
