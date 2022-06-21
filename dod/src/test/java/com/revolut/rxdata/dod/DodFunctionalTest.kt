@@ -73,7 +73,7 @@ class DodFunctionalTest {
         testSubscription.awaitTerminalEvent(maxNetworkEventAwaitMillis, MILLISECONDS)
 
         // then
-        expectThat(testSubscription.isTerminated).isTrue()
+        testSubscription.assertTerminated()
     }
 
     @RepeatedTest(5)
@@ -96,7 +96,7 @@ class DodFunctionalTest {
             it.join(maxNetworkEventAwaitMillis)
         }
 
-        expectThat(completedCounter.get()).isEqualTo(count)
+        assert(completedCounter.get() == count) { "Only ${completedCounter.get()} streams terminated"}
     }
 
 }

@@ -15,7 +15,6 @@ dependencies {
     testImplementation(Dependencies.jupiterApi)
     testImplementation(Dependencies.jupiterEngine)
     testImplementation(Dependencies.jupiterParams)
-    testImplementation(Dependencies.strikt)
     testImplementation(Dependencies.mockitoKotlin)
     testImplementation(Dependencies.mockitoInline)
 }
