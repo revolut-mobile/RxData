@@ -6,6 +6,7 @@ import com.revolut.rxdata.core.extensions.extractContent
 import io.reactivex.Single
 import io.reactivex.plugins.RxJavaPlugins
 import io.reactivex.schedulers.TestScheduler
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.BeforeEach
@@ -99,6 +100,10 @@ class DataObservableDelegateTest {
 
         RxJavaPlugins.setIoSchedulerHandler { ioScheduler }
         RxJavaPlugins.setComputationSchedulerHandler { computationScheduler }
+    }
+
+    @AfterEach fun afterEach() {
+        RxJavaPlugins.reset()
     }
 
     @Test
