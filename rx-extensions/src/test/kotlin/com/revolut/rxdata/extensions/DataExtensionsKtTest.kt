@@ -6,8 +6,8 @@ import com.revolut.rxdata.core.extensions.isEmpty
 import com.revolut.rxdata.core.extensions.isNotEmpty
 import com.revolut.rxdata.core.extensions.mapData
 import com.revolut.rxdata.core.extensions.mapDataErrorToContent
-import org.junit.Assert.*
-import org.junit.Test
+import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Test
 
 /*
  * Copyright (C) 2020 Revolut

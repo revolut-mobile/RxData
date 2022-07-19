@@ -1,8 +1,8 @@
 package com.revolut.data
 
 import com.revolut.data.model.Data
-import org.junit.Assert.assertTrue
-import org.junit.Test
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Test
 
 class DataTest {
 

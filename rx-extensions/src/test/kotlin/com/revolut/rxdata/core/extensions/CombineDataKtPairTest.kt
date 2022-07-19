@@ -3,8 +3,8 @@ package com.revolut.rxdata.core.extensions
 import com.revolut.data.model.Data
 import io.reactivex.observers.TestObserver
 import io.reactivex.subjects.PublishSubject
-import org.junit.Before
-import org.junit.Test
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 
 class CombineDataKtPairTest {
 
@@ -13,7 +13,7 @@ class CombineDataKtPairTest {
 
     lateinit var testCombinedAB: TestObserver<String>
 
-    @Before
+    @BeforeEach
     fun setup() {
         aSubject = PublishSubject.create()
         bSubject = PublishSubject.create()

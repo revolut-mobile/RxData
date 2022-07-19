@@ -2,7 +2,7 @@ package com.revolut.rxdata.core.extensions
 
 import com.revolut.data.model.Data
 import io.reactivex.Observable
-import org.junit.Test
+import org.junit.jupiter.api.Test
 
 class ExtractDataKtTest {
 

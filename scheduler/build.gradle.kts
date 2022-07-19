@@ -47,3 +47,7 @@ plugins.withId("com.vanniktech.maven.publish") {
         sonatypeHost = SonatypeHost.S01
     }
 }
+
+tasks.withType<Test> {
+    useJUnit()
+}
