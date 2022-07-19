@@ -7,6 +7,7 @@ import io.reactivex.Observable.concat
 import io.reactivex.Observable.just
 import io.reactivex.Single
 import io.reactivex.internal.disposables.DisposableContainer
+import io.reactivex.observers.DisposableObserver
 import io.reactivex.schedulers.Schedulers
 import io.reactivex.subjects.PublishSubject
 import io.reactivex.subjects.Subject
@@ -205,13 +206,10 @@ class DataObservableDelegate<Params : Any, Domain : Any> constructor(
         subject(params).onNext(Data(content = domain))
     }
 
+    @Suppress("CheckResult")
     private fun fetchFromNetwork(cachedData: Domain?, params: Params) {
-        val pendingNetworkReload = sharedNetworkRequest.getOrLoad(params)
-            .toObservable()
-            .timeout(DodGlobal.networkTimeoutSeconds, TimeUnit.SECONDS, Schedulers.io())
-            .subscribe({
-                //all done in sharedRequest
-            }, { error ->
+        val observer = object : DisposableObserver<Domain>() {
+            override fun onError(error: Throwable) {
                 //error handling is here and not in sharedRequest
                 //because timeout also generates an error that needs to be handled
                 val data = Data(content = cachedData, error = error)
@@ -223,9 +221,22 @@ class DataObservableDelegate<Params : Any, Domain : Any> constructor(
                 }
 
                 subject(params).onNext(data)
-            })
+            }
 
-        networkSubscriptionsContainer.add(pendingNetworkReload)
+            override fun onComplete() {
+            }
+
+            override fun onNext(t: Domain) {
+                //all done in sharedRequest
+            }
+        }
+        sharedNetworkRequest.getOrLoad(params)
+            .toObservable()
+            .timeout(DodGlobal.networkTimeoutSeconds, TimeUnit.SECONDS, Schedulers.io())
+            .doFinally { networkSubscriptionsContainer.remove(observer) }
+            .subscribeWith(observer)
+
+        networkSubscriptionsContainer.add(observer)
     }
 
     private fun subject(params: Params): Subject<Data<Domain>> = subjectsMap.getOrCreate(

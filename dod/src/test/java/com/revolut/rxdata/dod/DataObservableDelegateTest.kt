@@ -4,6 +4,7 @@ import com.nhaarman.mockito_kotlin.*
 import com.revolut.data.model.Data
 import com.revolut.rxdata.core.extensions.extractContent
 import io.reactivex.Single
+import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.plugins.RxJavaPlugins
 import io.reactivex.schedulers.TestScheduler
 import org.junit.Assert.assertEquals
@@ -753,7 +754,7 @@ class DataObservableDelegateTest {
     }
 
     @Test
-    fun `WHEN forceReload dod switchMaps to the same forceReload dod THEN emissions are muted after 2nd iteration`(){
+    fun `WHEN forceReload dod switchMaps to the same forceReload dod THEN emissions are muted after 2nd iteration`() {
         whenever(fromNetwork.invoke(eq(params))).thenReturn(Single.fromCallable { cachedDomain })
         storage[params] = cachedDomain
         memCache.remove(params)
@@ -770,7 +771,7 @@ class DataObservableDelegateTest {
     }
 
     @Test
-    fun `WHEN dod switchMaps to the same forceReload dod THEN emissions are muted after 2nd iteration`(){
+    fun `WHEN dod switchMaps to the same forceReload dod THEN emissions are muted after 2nd iteration`() {
         whenever(fromNetwork.invoke(eq(params))).thenReturn(Single.fromCallable { cachedDomain })
         storage[params] = cachedDomain
         memCache.remove(params)
@@ -787,7 +788,7 @@ class DataObservableDelegateTest {
     }
 
     @Test
-    fun `WHEN dod switchMaps to the same forceReload dod AND fromNetwork returns errors THEN emissions are muted after 2nd iteration`(){
+    fun `WHEN dod switchMaps to the same forceReload dod AND fromNetwork returns errors THEN emissions are muted after 2nd iteration`() {
         whenever(fromNetwork.invoke(eq(params))).thenReturn(Single.fromCallable { throw backendException })
         storage[params] = cachedDomain
         memCache.remove(params)
@@ -801,6 +802,34 @@ class DataObservableDelegateTest {
                 ioScheduler.triggerActions()
             }
             .assertValueCount(8)
+    }
+
+    @Test
+    fun `WHEN network request is over THEN disposable is removed from container`() {
+        val disposableContainer = CompositeDisposable()
+        val dataObservableDelegate = DataObservableDelegate(
+            fromNetwork = fromNetworkScoped,
+            fromMemory = fromMemory,
+            toMemory = toMemory,
+            fromStorage = fromStorage,
+            toStorage = toStorage,
+            networkSubscriptionsContainer = disposableContainer
+        )
+
+        whenever(fromNetwork.invoke(eq(params))).thenReturn(Single.fromCallable { domain })
+
+        val testObserver =
+            dataObservableDelegate.observe(params = params, forceReload = true).test()
+
+        testObserver.assertValueCount(1)
+        testObserver.assertValueAt(0, Data(null, error = null, loading = true))
+
+        ioScheduler.advanceTimeBy(10, TimeUnit.MILLISECONDS)
+        testObserver.assertValueCount(2)
+
+        testObserver.assertValueAt(1, Data(domain, error = null, loading = false))
+
+        assertEquals(0, disposableContainer.size())
     }
 
 }
