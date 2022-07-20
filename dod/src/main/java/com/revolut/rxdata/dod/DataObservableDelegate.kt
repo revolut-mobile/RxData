@@ -8,7 +8,6 @@ import io.reactivex.Observable.just
 import io.reactivex.Single
 import io.reactivex.internal.disposables.DisposableContainer
 import io.reactivex.internal.observers.LambdaObserver
-import io.reactivex.observers.DisposableObserver
 import io.reactivex.schedulers.Schedulers
 import io.reactivex.subjects.PublishSubject
 import io.reactivex.subjects.Subject
