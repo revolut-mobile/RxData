@@ -12,7 +12,9 @@ dependencies {
     implementation(project(":model"))
 
     testImplementation(project(":rx-extensions"))
-    testImplementation(Dependencies.jUnit)
+    testImplementation(Dependencies.jupiterApi)
+    testImplementation(Dependencies.jupiterEngine)
+    testImplementation(Dependencies.jupiterParams)
     testImplementation(Dependencies.mockitoKotlin)
     testImplementation(Dependencies.mockitoInline)
 }

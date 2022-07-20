@@ -5,7 +5,9 @@ plugins {
 }
 dependencies {
 
-    testImplementation(Dependencies.jUnit)
+    testImplementation(Dependencies.jupiterEngine)
+    testImplementation(Dependencies.jupiterParams)
+    testImplementation(Dependencies.jupiterApi)
     testImplementation(Dependencies.mockitoKotlin)
     testImplementation(Dependencies.mockitoInline)
 }

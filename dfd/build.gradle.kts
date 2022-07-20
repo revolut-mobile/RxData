@@ -12,7 +12,9 @@ dependencies {
     testImplementation(project(":flow-extensions"))
     testImplementation(Dependencies.coroutinesCoreTest)
     testImplementation(Dependencies.turbineCoroutinesTest)
-    testImplementation(Dependencies.jUnit)
+    testImplementation(Dependencies.jupiterApi)
+    testImplementation(Dependencies.jupiterParams)
+    testImplementation(Dependencies.jupiterEngine)
     testImplementation(Dependencies.mockitoKotlin)
     testImplementation(Dependencies.mockitoInline)
 }

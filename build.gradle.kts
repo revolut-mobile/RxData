@@ -1,3 +1,4 @@
+import org.gradle.internal.impldep.org.fusesource.jansi.AnsiRenderer.test
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
@@ -38,4 +39,9 @@ subprojects {
         targetCompatibility = JavaVersion.VERSION_1_8.toString()
         sourceCompatibility = JavaVersion.VERSION_1_8.toString()
     }
+
+    tasks.withType<Test> {
+        useJUnitPlatform()
+    }
+
 }

@@ -137,9 +137,9 @@ class DataObservableDelegate<Params : Any, Domain : Any> constructor(
         }
 
     private fun Observable<Data<Domain>>.muteRepetitiveReloading(): Observable<Data<Domain>> =
-        this.scan(ReloadingDataScanner<Domain>(), { scanner, newEmit ->
+        this.scan(ReloadingDataScanner<Domain>()) { scanner, newEmit ->
             scanner.registerData(newEmit)
-        }).skip(1)
+        }.skip(1)
             .filter { scanner -> scanner.shouldEmitCurrentData() }
             .map { it.currentData() }
 
