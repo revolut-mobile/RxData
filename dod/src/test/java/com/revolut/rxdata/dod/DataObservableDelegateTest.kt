@@ -3,6 +3,7 @@ package com.revolut.rxdata.dod
 import com.nhaarman.mockito_kotlin.*
 import com.revolut.data.model.Data
 import com.revolut.rxdata.core.extensions.extractContent
+import com.revolut.rxdata.core.extensions.takeUntilLoaded
 import io.reactivex.Single
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.plugins.RxJavaPlugins
@@ -103,7 +104,8 @@ class DataObservableDelegateTest {
         RxJavaPlugins.setComputationSchedulerHandler { computationScheduler }
     }
 
-    @AfterEach fun afterEach() {
+    @AfterEach
+    fun afterEach() {
         RxJavaPlugins.reset()
     }
 
@@ -824,16 +826,11 @@ class DataObservableDelegateTest {
 
         whenever(fromNetwork.invoke(eq(params))).thenReturn(Single.fromCallable { domain })
 
-        val testObserver =
-            dataObservableDelegate.observe(params = params, forceReload = true).test()
-
-        testObserver.assertValueCount(1)
-        testObserver.assertValueAt(0, Data(null, error = null, loading = true))
-
-        ioScheduler.advanceTimeBy(10, TimeUnit.MILLISECONDS)
-        testObserver.assertValueCount(2)
-
-        testObserver.assertValueAt(1, Data(domain, error = null, loading = false))
+        dataObservableDelegate.observe(params = params, forceReload = true)
+            .takeUntilLoaded()
+            .test()
+            .apply { ioScheduler.triggerActions() }
+            .assertComplete()
 
         assertEquals(0, disposableContainer.size())
     }
