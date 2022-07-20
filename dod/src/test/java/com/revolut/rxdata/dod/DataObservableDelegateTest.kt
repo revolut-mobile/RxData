@@ -3,12 +3,13 @@ package com.revolut.rxdata.dod
 import com.nhaarman.mockito_kotlin.*
 import com.revolut.data.model.Data
 import com.revolut.rxdata.core.extensions.extractContent
+import com.revolut.rxdata.core.extensions.takeUntilLoaded
 import io.reactivex.Single
+import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.plugins.RxJavaPlugins
 import io.reactivex.schedulers.TestScheduler
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import java.io.IOException
@@ -102,7 +103,8 @@ class DataObservableDelegateTest {
         RxJavaPlugins.setComputationSchedulerHandler { computationScheduler }
     }
 
-    @AfterEach fun afterEach() {
+    @AfterEach
+    fun afterEach() {
         RxJavaPlugins.reset()
     }
 
@@ -759,7 +761,7 @@ class DataObservableDelegateTest {
     }
 
     @Test
-    fun `WHEN forceReload dod switchMaps to the same forceReload dod THEN emissions are muted after 2nd iteration`(){
+    fun `WHEN forceReload dod switchMaps to the same forceReload dod THEN emissions are muted after 2nd iteration`() {
         whenever(fromNetwork.invoke(eq(params))).thenReturn(Single.fromCallable { cachedDomain })
         storage[params] = cachedDomain
         memCache.remove(params)
@@ -776,7 +778,7 @@ class DataObservableDelegateTest {
     }
 
     @Test
-    fun `WHEN dod switchMaps to the same forceReload dod THEN emissions are muted after 2nd iteration`(){
+    fun `WHEN dod switchMaps to the same forceReload dod THEN emissions are muted after 2nd iteration`() {
         whenever(fromNetwork.invoke(eq(params))).thenReturn(Single.fromCallable { cachedDomain })
         storage[params] = cachedDomain
         memCache.remove(params)
@@ -793,7 +795,7 @@ class DataObservableDelegateTest {
     }
 
     @Test
-    fun `WHEN dod switchMaps to the same forceReload dod AND fromNetwork returns errors THEN emissions are muted after 2nd iteration`(){
+    fun `WHEN dod switchMaps to the same forceReload dod AND fromNetwork returns errors THEN emissions are muted after 2nd iteration`() {
         whenever(fromNetwork.invoke(eq(params))).thenReturn(Single.fromCallable { throw backendException })
         storage[params] = cachedDomain
         memCache.remove(params)
@@ -807,6 +809,29 @@ class DataObservableDelegateTest {
                 ioScheduler.triggerActions()
             }
             .assertValueCount(8)
+    }
+
+    @Test
+    fun `WHEN network request is over THEN disposable is removed from container`() {
+        val disposableContainer = CompositeDisposable()
+        val dataObservableDelegate = DataObservableDelegate(
+            fromNetwork = fromNetworkScoped,
+            fromMemory = fromMemory,
+            toMemory = toMemory,
+            fromStorage = fromStorage,
+            toStorage = toStorage,
+            networkSubscriptionsContainer = disposableContainer
+        )
+
+        whenever(fromNetwork.invoke(eq(params))).thenReturn(Single.fromCallable { domain })
+
+        dataObservableDelegate.observe(params = params, forceReload = true)
+            .takeUntilLoaded()
+            .test()
+            .apply { ioScheduler.triggerActions() }
+            .assertComplete()
+
+        assertEquals(0, disposableContainer.size())
     }
 
 }

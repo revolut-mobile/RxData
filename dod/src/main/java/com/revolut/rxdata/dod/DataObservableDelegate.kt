@@ -7,6 +7,7 @@ import io.reactivex.Observable.concat
 import io.reactivex.Observable.just
 import io.reactivex.Single
 import io.reactivex.internal.disposables.DisposableContainer
+import io.reactivex.internal.observers.LambdaObserver
 import io.reactivex.schedulers.Schedulers
 import io.reactivex.subjects.PublishSubject
 import io.reactivex.subjects.Subject
@@ -205,11 +206,10 @@ class DataObservableDelegate<Params : Any, Domain : Any> constructor(
         subject(params).onNext(Data(content = domain))
     }
 
+    @Suppress("CheckResult")
     private fun fetchFromNetwork(cachedData: Domain?, params: Params) {
-        val pendingNetworkReload = sharedNetworkRequest.getOrLoad(params)
-            .toObservable()
-            .timeout(DodGlobal.networkTimeoutSeconds, TimeUnit.SECONDS, Schedulers.io())
-            .subscribe({
+        val observer = LambdaObserver<Domain>(
+            {
                 //all done in sharedRequest
             }, { error ->
                 //error handling is here and not in sharedRequest
@@ -223,9 +223,15 @@ class DataObservableDelegate<Params : Any, Domain : Any> constructor(
                 }
 
                 subject(params).onNext(data)
-            })
+            }, {}, {}
+        )
+        sharedNetworkRequest.getOrLoad(params)
+            .toObservable()
+            .timeout(DodGlobal.networkTimeoutSeconds, TimeUnit.SECONDS, Schedulers.io())
+            .doFinally { networkSubscriptionsContainer.remove(observer) }
+            .subscribeWith(observer)
 
-        networkSubscriptionsContainer.add(pendingNetworkReload)
+        networkSubscriptionsContainer.add(observer)
     }
 
     private fun subject(params: Params): Subject<Data<Domain>> = subjectsMap.getOrCreate(
