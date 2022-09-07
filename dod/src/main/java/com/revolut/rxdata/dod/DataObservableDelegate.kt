@@ -86,12 +86,6 @@ class DataObservableDelegate<Params : Any, Domain : Any> constructor(
 
                     Single.just(data)
                 }
-                .doAfterSuccess { cachedValue ->
-                    if (cachedValue.loading || cachedValue.error != null) {
-                        fetchFromNetwork(cachedValue.content, params)
-                    }
-                }
-
         }
 
     /**
@@ -126,8 +120,18 @@ class DataObservableDelegate<Params : Any, Domain : Any> constructor(
                 }
             } else {
                 sharedStorageRequest.getOrLoad(params to loading)
+                    .map { cached ->
+                        val fetchFromNetwork = cached.loading || cached.error != null
+                        cached to fetchFromNetwork
+                    }
                     .toObservable()
-                    .concatWith(subject)
+                    .concatWith(subject.map { it to false })
+                    .doOnNext { (data, shouldFetchFromNetwork) ->
+                        if (shouldFetchFromNetwork) {
+                            fetchFromNetwork(data.content, params)
+                        }
+                    }
+                    .map { it.first }
                     .startWith(Data(null, loading = true))
             }
 
