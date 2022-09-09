@@ -63,7 +63,7 @@ class DodFunctionalTest {
     companion object {
 
         @JvmStatic
-        fun params(): List<Int> = (1..100).toList()
+        fun params(): List<Int> = (1..10).toList()
 
     }
 

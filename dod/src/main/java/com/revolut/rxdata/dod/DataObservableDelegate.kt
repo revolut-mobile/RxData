@@ -65,8 +65,8 @@ class DataObservableDelegate<Params : Any, Domain : Any> constructor(
 
         }
 
-    private val sharedStorageRequest: SharedSingleRequest<Pair<Params, Boolean>, Data<Domain>> =
-        SharedSingleRequest { (params, loading) ->
+    private val sharedStorageRequest: SharedSingleRequest<Params, Data<Domain>> =
+        SharedSingleRequest { params ->
             val subject = subject(params)
 
             this.fromStorageSingle(params)
@@ -76,7 +76,7 @@ class DataObservableDelegate<Params : Any, Domain : Any> constructor(
                     }
                 }
                 .map { storageData ->
-                    val data = storageData.copy(loading = loading)
+                    val data = storageData.copy(loading = true)
                     subject.onNext(data)
                     data
                 }
@@ -119,19 +119,15 @@ class DataObservableDelegate<Params : Any, Domain : Any> constructor(
                     }
                 }
             } else {
-                sharedStorageRequest.getOrLoad(params to loading)
-                    .map { cached ->
-                        val fetchFromNetwork = cached.loading || cached.error != null
-                        cached to fetchFromNetwork
-                    }
-                    .toObservable()
-                    .concatWith(subject.map { it to false })
-                    .doOnNext { (data, shouldFetchFromNetwork) ->
-                        if (shouldFetchFromNetwork) {
-                            fetchFromNetwork(data.content, params)
+                sharedStorageRequest.getOrLoad(params)
+                    .flatMapObservable { cached ->
+                        concat(
+                            just(cached),
+                            subject
+                        ).doOnSubscribe {
+                            fetchFromNetwork(cached.content, params)
                         }
                     }
-                    .map { it.first }
                     .startWith(Data(null, loading = true))
             }
 
