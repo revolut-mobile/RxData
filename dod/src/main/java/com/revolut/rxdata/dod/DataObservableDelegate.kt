@@ -112,7 +112,7 @@ class DataObservableDelegate<Params : Any, Domain : Any> constructor(
                 concat(
                     just(Data(content = memCache, loading = loading)),
                     subject
-                ).doOnSubscribe {
+                ).doAfterSubscribe {
                     if (loading) {
                         subject.onNext(Data(content = memCache, loading = loading))
                         fetchFromNetwork(memCache, params)
@@ -124,7 +124,7 @@ class DataObservableDelegate<Params : Any, Domain : Any> constructor(
                         concat(
                             just(cached),
                             subject
-                        ).doOnSubscribe {
+                        ).doAfterSubscribe {
                             fetchFromNetwork(cached.content, params)
                         }
                     }
@@ -237,6 +237,10 @@ class DataObservableDelegate<Params : Any, Domain : Any> constructor(
     private fun subject(params: Params): Subject<Data<Domain>> = subjectsMap.getOrCreate(
         params,
         creator = { PublishSubject.create<Data<Domain>>().toSerialized() })
+
+    private fun <T : Any> Observable<T>.doAfterSubscribe(action: () -> Unit) = this.mergeWith(
+        Completable.fromAction { action() }
+    )
 
 
 }
