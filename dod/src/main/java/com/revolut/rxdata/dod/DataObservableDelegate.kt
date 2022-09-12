@@ -65,8 +65,8 @@ class DataObservableDelegate<Params : Any, Domain : Any> constructor(
 
         }
 
-    private val sharedStorageRequest: SharedSingleRequest<Pair<Params, Boolean>, Data<Domain>> =
-        SharedSingleRequest { (params, loading) ->
+    private val sharedStorageRequest: SharedSingleRequest<Params, Data<Domain>> =
+        SharedSingleRequest { params ->
             val subject = subject(params)
 
             this.fromStorageSingle(params)
@@ -76,7 +76,7 @@ class DataObservableDelegate<Params : Any, Domain : Any> constructor(
                     }
                 }
                 .map { storageData ->
-                    val data = storageData.copy(loading = loading)
+                    val data = storageData.copy(loading = true)
                     subject.onNext(data)
                     data
                 }
@@ -86,12 +86,6 @@ class DataObservableDelegate<Params : Any, Domain : Any> constructor(
 
                     Single.just(data)
                 }
-                .doAfterSuccess { cachedValue ->
-                    if (cachedValue.loading || cachedValue.error != null) {
-                        fetchFromNetwork(cachedValue.content, params)
-                    }
-                }
-
         }
 
     /**
@@ -118,16 +112,22 @@ class DataObservableDelegate<Params : Any, Domain : Any> constructor(
                 concat(
                     just(Data(content = memCache, loading = loading)),
                     subject
-                ).doOnSubscribe {
+                ).doAfterSubscribe {
                     if (loading) {
                         subject.onNext(Data(content = memCache, loading = loading))
                         fetchFromNetwork(memCache, params)
                     }
                 }
             } else {
-                sharedStorageRequest.getOrLoad(params to loading)
-                    .toObservable()
-                    .concatWith(subject)
+                sharedStorageRequest.getOrLoad(params)
+                    .flatMapObservable { cached ->
+                        concat(
+                            just(cached),
+                            subject
+                        ).doAfterSubscribe {
+                            fetchFromNetwork(cached.content, params)
+                        }
+                    }
                     .startWith(Data(null, loading = true))
             }
 
@@ -237,6 +237,10 @@ class DataObservableDelegate<Params : Any, Domain : Any> constructor(
     private fun subject(params: Params): Subject<Data<Domain>> = subjectsMap.getOrCreate(
         params,
         creator = { PublishSubject.create<Data<Domain>>().toSerialized() })
+
+    private fun <T : Any> Observable<T>.doAfterSubscribe(action: () -> Unit) = this.mergeWith(
+        Completable.fromAction { action() }
+    )
 
 
 }
