@@ -1,7 +1,6 @@
 package com.revolut.flowdata.extensions
 
 import com.revolut.data.model.Data
-import com.revolut.flow_core.extensions.runFlowTest
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
