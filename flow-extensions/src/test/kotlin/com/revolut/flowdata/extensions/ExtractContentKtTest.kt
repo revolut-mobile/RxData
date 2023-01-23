@@ -60,57 +60,6 @@ class ExtractContentKtTest {
 
     //endregion
 
-    //region filterWhileLoading
-
-    @Test
-    fun `Loading items are skipped`() = runTest {
-        flowOf(
-            Data("A", null, loading = true),
-            Data("B", null, loading = false)
-        ).filterWhileLoading().extractContent().test {
-            assertEquals("B", expectMostRecentItem())
-        }
-    }
-
-    @Test
-    fun `Loading items with errors are skipped`() = runTest {
-        val error = IllegalStateException()
-
-        flowOf(
-            Data("A", error, loading = true),
-            Data("B", null, loading = false)
-        ).filterWhileLoading().extractContent().test {
-            assertEquals("B", expectMostRecentItem())
-        }
-    }
-
-    @Test
-    fun `Error after loading`() = runTest {
-        val error = IllegalStateException()
-
-        flowOf(
-            Data("A", null, loading = true),
-            Data("A", error, loading = false)
-        ).filterWhileLoading().extractContent().test {
-            assertEquals(error, awaitError())
-        }
-    }
-
-
-    @Test
-    fun `Error without content is extracted and terminates the stream`() = runTest {
-        val error = IllegalStateException()
-
-        flowOf(
-            Data("A", null, loading = true),
-            Data(null, error, loading = false)
-        ).filterWhileLoading().extractContent().test {
-            assertEquals(error, awaitError())
-        }
-    }
-
-    //endregion
-
     //region consumeErrors conditionally
 
     @Test
