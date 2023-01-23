@@ -3,6 +3,7 @@ package com.revolut.flowdata.extensions
 import com.revolut.data.model.Data
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.transformWhile
 
 /*
  * Copyright (C) 2022 Revolut
@@ -23,3 +24,9 @@ import kotlinx.coroutines.flow.filter
 
 fun <T> Flow<Data<T>>.filterWhileLoading(): Flow<Data<T>> =
     filter { data -> !data.loading }
+
+fun <T> Flow<Data<T>>.takeUntilLoaded(): Flow<Data<T>> =
+    transformWhile {
+        emit(it)
+        it.loading
+    }
