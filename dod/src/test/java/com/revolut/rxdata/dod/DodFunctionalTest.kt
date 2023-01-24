@@ -1,7 +1,5 @@
 package com.revolut.rxdata.dod
 
-import com.nhaarman.mockito_kotlin.mock
-import com.nhaarman.mockito_kotlin.whenever
 import com.revolut.rxdata.core.extensions.takeUntilLoaded
 import io.reactivex.Single
 import org.junit.jupiter.api.RepeatedTest
@@ -11,6 +9,7 @@ import org.junit.jupiter.api.parallel.Execution
 import org.junit.jupiter.api.parallel.ExecutionMode.CONCURRENT
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.MethodSource
+import org.mockito.kotlin.*
 import java.lang.IllegalStateException
 import java.lang.Thread.sleep
 import java.util.concurrent.ConcurrentHashMap
