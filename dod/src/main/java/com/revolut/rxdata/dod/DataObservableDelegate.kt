@@ -198,7 +198,7 @@ class DataObservableDelegate<Params : Any, Domain : Any> constructor(
         fetchFromNetwork(cachedData = fromMemory(params), params = params)
     } else Completable.create { emitter ->
         notifyFromMemory(loading = true) { it == params}
-        fetchFromNetwork(cachedData = fromMemory(params), params = params, onFinish = { emitter.onComplete()}, onError = { emitter.onError(it) })
+        fetchFromNetwork(cachedData = fromMemory(params), params = params, onComplete = { emitter.onComplete()}, onError = { emitter.onError(it) })
     }
 
     @Deprecated(
@@ -210,11 +210,11 @@ class DataObservableDelegate<Params : Any, Domain : Any> constructor(
     }
 
     @Suppress("CheckResult")
-    private fun fetchFromNetwork(cachedData: Domain?, params: Params, onFinish: () -> Unit = {}, onError:(Throwable) -> Unit = {}) {
+    private fun fetchFromNetwork(cachedData: Domain?, params: Params, onComplete: () -> Unit = {}, onError:(Throwable) -> Unit = {}) {
         val observer = LambdaObserver<Domain>(
             {
                 //all done in sharedRequest
-                onFinish()
+                onComplete()
             }, { error ->
                 //error handling is here and not in sharedRequest
                 //because timeout also generates an error that needs to be handled
