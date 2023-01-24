@@ -1,6 +1,5 @@
 package com.revolut.rxdata.dod
 
-import com.nhaarman.mockito_kotlin.*
 import com.revolut.data.model.Data
 import com.revolut.rxdata.core.extensions.extractContent
 import com.revolut.rxdata.core.extensions.takeUntilLoaded
@@ -12,6 +11,7 @@ import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.mockito.kotlin.*
 import java.io.IOException
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
@@ -697,6 +697,7 @@ class DataObservableDelegateTest {
 
     @Test
     fun `reload completable notifies subscribers and updates storage and memory`() {
+        // given
         whenever(fromNetwork.invoke(eq(params))).thenReturn(Single.fromCallable { domain })
 
         val testObserver =
@@ -712,16 +713,51 @@ class DataObservableDelegateTest {
         val updatedDomain: Domain = "updated_domain"
         whenever(fromNetwork.invoke(eq(params))).thenReturn(Single.fromCallable { updatedDomain })
 
-        dataObservableDelegate.reload(params = params).test()
-            .apply { ioScheduler.triggerActions() }.assertComplete()
+        // when
+        val reload = dataObservableDelegate.reload(params = params).test()
 
-        testObserver.assertValueCount(3)
-        testObserver.assertValueAt(2, Data(updatedDomain, null, false))
+        // then
+        reload.assertComplete() // complete non-blocking before network executes
+        ioScheduler.triggerActions() // network executes
+
+        testObserver.assertValueCount(4)
+        testObserver.assertValueAt(2, Data(domain, null, true))
+        testObserver.assertValueAt(3, Data(updatedDomain, null, false))
 
         verify(toMemory).invoke(params, updatedDomain)
         verify(toStorage).invoke(params, updatedDomain)
     }
 
+    @Test
+    fun `reload await completes only after network request is completed`() {
+        // given
+        whenever(fromNetwork.invoke(eq(params))).thenReturn(Single.fromCallable { domain })
+
+        // when
+        val reload = dataObservableDelegate.reload(params = params, await = true).test()
+
+        // then
+        reload.assertNotComplete()  // not complete before network executes
+        ioScheduler.triggerActions()
+        reload.assertComplete() // not complete after network executed
+    }
+
+    @Test
+    fun `reload await emits error if network fails`() {
+        // given
+        whenever(fromNetwork.invoke(eq(params))).thenReturn(Single.fromCallable { domain })
+
+        val error = IllegalStateException()
+        whenever(fromNetwork.invoke(eq(params))).thenReturn(Single.error(error))
+
+        // when
+        val reload = dataObservableDelegate.reload(params = params, await = true).test()
+
+        // then
+        reload.assertNotTerminated()
+        ioScheduler.triggerActions() // network executes
+        reload.assertError(error)
+    }
 
     @Test
     fun `WHEN storage returns error THEN network data is emitted later`() {
@@ -742,7 +778,7 @@ class DataObservableDelegateTest {
 
 
     @Test
-    fun `WHEN memoryIsEmpty and dod is observed multipple times THEN fromStorage is called once`() {
+    fun `WHEN memoryIsEmpty and dod is observed multiple times THEN fromStorage is called once`() {
         val counter = AtomicInteger(0);
 
         whenever(fromNetwork.invoke(eq(params))).thenReturn(Single.fromCallable { domain })

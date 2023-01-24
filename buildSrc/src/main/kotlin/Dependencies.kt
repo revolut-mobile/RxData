@@ -28,7 +28,7 @@ object Dependencies {
     const val jupiterApi = "org.junit.jupiter:junit-jupiter-api:$junitVersion"
     const val jupiterParams = "org.junit.jupiter:junit-jupiter-params:$junitVersion"
     const val jupiterEngine = "org.junit.jupiter:junit-jupiter-engine:$junitVersion"
-    const val mockitoKotlin = "com.nhaarman:mockito-kotlin:1.5.0"
+    const val mockitoKotlin = "org.mockito.kotlin:mockito-kotlin:4.0.0"
     const val mockitoInline = "org.mockito:mockito-inline:3.8.0"
 }
 

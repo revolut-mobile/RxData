@@ -62,7 +62,6 @@ class DataObservableDelegate<Params : Any, Domain : Any> constructor(
                     val data = Data(content = domain)
                     subject(params).onNext(data)
                 }
-
         }
 
     private val sharedStorageRequest: SharedSingleRequest<Params, Data<Domain>> =
@@ -194,8 +193,12 @@ class DataObservableDelegate<Params : Any, Domain : Any> constructor(
         subject(params).onNext(Data(content = null))
     }
 
-    fun reload(params: Params): Completable = Completable.fromAction {
+    fun reload(params: Params, await: Boolean = false): Completable = if (!await) Completable.fromAction {
+        notifyFromMemory(loading = true) { it == params}
         fetchFromNetwork(cachedData = fromMemory(params), params = params)
+    } else Completable.create { emitter ->
+        notifyFromMemory(loading = true) { it == params}
+        fetchFromNetwork(cachedData = fromMemory(params), params = params, onComplete = { emitter.onComplete()}, onError = { emitter.onError(it) })
     }
 
     @Deprecated(
@@ -207,10 +210,11 @@ class DataObservableDelegate<Params : Any, Domain : Any> constructor(
     }
 
     @Suppress("CheckResult")
-    private fun fetchFromNetwork(cachedData: Domain?, params: Params) {
+    private fun fetchFromNetwork(cachedData: Domain?, params: Params, onComplete: () -> Unit = {}, onError:(Throwable) -> Unit = {}) {
         val observer = LambdaObserver<Domain>(
             {
                 //all done in sharedRequest
+                onComplete()
             }, { error ->
                 //error handling is here and not in sharedRequest
                 //because timeout also generates an error that needs to be handled
@@ -223,6 +227,7 @@ class DataObservableDelegate<Params : Any, Domain : Any> constructor(
                 }
 
                 subject(params).onNext(data)
+                onError(error)
             }, {}, {}
         )
         sharedNetworkRequest.getOrLoad(params)
@@ -241,6 +246,5 @@ class DataObservableDelegate<Params : Any, Domain : Any> constructor(
     private fun <T : Any> Observable<T>.doAfterSubscribe(action: () -> Unit) = this.mergeWith(
         Completable.fromAction { action() }
     )
-
 
 }
