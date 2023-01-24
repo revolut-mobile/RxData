@@ -7,7 +7,7 @@ on:
 jobs:
   publish-maven:
     runs-on: ubuntu-latest
-    if: contains(github.ref, 'rx-extensions')
+    if: contains(github.ref, 'rx-extensions') || contains(github.ref, 'all')
 
     steps:
       - uses: actions/checkout@v2

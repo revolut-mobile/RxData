@@ -7,7 +7,7 @@ on:
 jobs:
   publish-maven:
     runs-on: ubuntu-latest
-    if: contains(github.ref, 'model')
+    if: contains(github.ref, 'model') || contains(github.ref, 'all')
 
     steps:
       - uses: actions/checkout@v2

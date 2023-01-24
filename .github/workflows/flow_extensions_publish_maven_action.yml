@@ -7,7 +7,7 @@ on:
 jobs:
   publish-maven:
     runs-on: ubuntu-latest
-    if: contains(github.ref, 'flow-extensions')
+    if: contains(github.ref, 'flow-extensions') || contains(github.ref, 'all')
 
     steps:
       - uses: actions/checkout@v2
