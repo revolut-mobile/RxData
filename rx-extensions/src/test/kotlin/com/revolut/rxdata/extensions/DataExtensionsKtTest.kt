@@ -1,6 +1,5 @@
 package com.revolut.rxdata.extensions
 
-import com.nhaarman.mockito_kotlin.mock
 import com.revolut.data.model.Data
 import com.revolut.rxdata.core.extensions.isEmpty
 import com.revolut.rxdata.core.extensions.isNotEmpty
@@ -8,6 +7,7 @@ import com.revolut.rxdata.core.extensions.mapData
 import com.revolut.rxdata.core.extensions.mapDataErrorToContent
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
+import org.mockito.kotlin.mock
 
 /*
  * Copyright (C) 2020 Revolut
