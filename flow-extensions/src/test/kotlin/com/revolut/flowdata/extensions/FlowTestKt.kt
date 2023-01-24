@@ -1,4 +1,4 @@
-package com.revolut.flow_core.extensions
+package com.revolut.flowdata.extensions
 
 import app.cash.turbine.FlowTurbine
 import app.cash.turbine.test
