@@ -7,6 +7,7 @@ import io.reactivex.Single
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.plugins.RxJavaPlugins
 import io.reactivex.schedulers.TestScheduler
+import io.reactivex.subjects.BehaviorSubject
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
@@ -443,7 +444,7 @@ class DataObservableDelegateTest {
 
 
         verify(fromNetwork, only()).invoke(eq(params))
-        verify(fromMemory, only()).invoke(eq(params))
+        verify(fromMemory, times(2)).invoke(eq(params))
         verifyNoMoreInteractions(toMemory)
         verify(fromStorage, only()).invoke(eq(params))
         verifyNoMoreInteractions(toStorage)
@@ -467,14 +468,14 @@ class DataObservableDelegateTest {
         testObserver.assertValueAt(2, Data(cachedDomain, error = backendException, loading = false))
 
         verify(fromNetwork, only()).invoke(eq(params))
-        verify(fromMemory, only()).invoke(eq(params))
+        verify(fromMemory, times(2)).invoke(eq(params))
         verify(toMemory, only()).invoke(eq(params), eq(cachedDomain))
         verify(fromStorage, only()).invoke(eq(params))
         verifyNoMoreInteractions(toStorage)
     }
 
     @Test
-    fun `FORCE observing data when memory cache IS NOT EMPTY  and server returns ERROR`() {
+    fun `FORCE observing data when memory cache IS NOT EMPTY and server returns ERROR`() {
         whenever(fromNetwork.invoke(eq(params))).thenReturn(Single.fromCallable { throw backendException })
         memCache[params] = cachedDomain
 
@@ -493,7 +494,7 @@ class DataObservableDelegateTest {
         )
 
         verify(fromNetwork, only()).invoke(eq(params))
-        verify(fromMemory, only()).invoke(eq(params))
+        verify(fromMemory, times(2)).invoke(eq(params))
         verifyNoMoreInteractions(toMemory)
         verifyNoMoreInteractions(fromStorage)
         verifyNoMoreInteractions(toStorage)
@@ -578,7 +579,7 @@ class DataObservableDelegateTest {
         testObserver.assertValueAt(1, Data(null, error = backendException, loading = false))
 
         verify(fromNetwork, only()).invoke(eq(params))
-        verify(fromMemory, only()).invoke(eq(params))
+        verify(fromMemory, times(2)).invoke(eq(params))
         verifyNoMoreInteractions(toMemory)
         verify(fromStorage, only()).invoke(eq(params))
         verifyNoMoreInteractions(toStorage)
@@ -603,7 +604,7 @@ class DataObservableDelegateTest {
         testObserver.assertValueAt(2, Data(cachedDomain, error = backendException, loading = false))
 
         verify(fromNetwork, only()).invoke(eq(params))
-        verify(fromMemory, only()).invoke(eq(params))
+        verify(fromMemory, times(2)).invoke(eq(params))
         verify(toMemory, only()).invoke(eq(params), eq(cachedDomain))
         verify(fromStorage, only()).invoke(eq(params))
         verifyNoMoreInteractions(toStorage)
@@ -870,4 +871,70 @@ class DataObservableDelegateTest {
         assertEquals(0, disposableContainer.size())
     }
 
+    @Test
+    fun `WHEN fromNetwork failing with delay AND notifyFromMemory called in between THEN subscriber receives latest value`() {
+        val networkSubject = BehaviorSubject.create<Domain>()
+        whenever(fromNetwork.invoke(eq(params))).thenReturn(networkSubject.firstOrError())
+        memCache[params] = cachedDomain
+
+        val testObserver =
+            dataObservableDelegate.observe(params = params, forceReload = true).test()
+
+        testObserver.assertValueCount(1)
+        testObserver.assertValueAt(0, Data(content = cachedDomain, error = null, loading = true))
+
+        memCache[params] = domain2
+        dataObservableDelegate.notifyFromMemory { it == params }
+
+        testObserver.assertValueAt(1, Data(content = domain2))
+
+        networkSubject.onError(RuntimeException())
+        ioScheduler.triggerActions()
+
+        testObserver.assertValueAt(2, Data(content = domain2, error = RuntimeException()))
+    }
+
+    @Test
+    fun `WHEN fromNetwork failing with delay AND updateAll called in between THEN subscriber receives latest value`() {
+        val networkSubject = BehaviorSubject.create<Domain>()
+        whenever(fromNetwork.invoke(eq(params))).thenReturn(networkSubject.firstOrError())
+        memCache[params] = cachedDomain
+
+        val testObserver =
+            dataObservableDelegate.observe(params = params, forceReload = true).test()
+
+        testObserver.assertValueCount(1)
+        testObserver.assertValueAt(0, Data(content = cachedDomain, error = null, loading = true))
+
+        dataObservableDelegate.updateAll(params, domain2)
+
+        testObserver.assertValueAt(1, Data(content = domain2))
+
+        networkSubject.onError(RuntimeException())
+        ioScheduler.triggerActions()
+
+        testObserver.assertValueAt(2, Data(content = domain2, error = RuntimeException()))
+    }
+
+    @Test
+    fun `WHEN fromNetwork failing with delay AND updateMemory called in between THEN subscriber receives latest value`() {
+        val networkSubject = BehaviorSubject.create<Domain>()
+        whenever(fromNetwork.invoke(eq(params))).thenReturn(networkSubject.firstOrError())
+        memCache[params] = cachedDomain
+
+        val testObserver =
+            dataObservableDelegate.observe(params = params, forceReload = true).test()
+
+        testObserver.assertValueCount(1)
+        testObserver.assertValueAt(0, Data(content = cachedDomain, error = null, loading = true))
+
+        dataObservableDelegate.updateMemory(params, domain2)
+
+        testObserver.assertValueAt(1, Data(content = domain2))
+
+        networkSubject.onError(RuntimeException())
+        ioScheduler.triggerActions()
+
+        testObserver.assertValueAt(2, Data(content = domain2, error = RuntimeException()))
+    }
 }
