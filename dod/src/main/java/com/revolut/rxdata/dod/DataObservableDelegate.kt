@@ -114,7 +114,7 @@ class DataObservableDelegate<Params : Any, Domain : Any> constructor(
                 ).doAfterSubscribe {
                     if (loading) {
                         subject.onNext(Data(content = memCache, loading = loading))
-                        fetchFromNetwork(params)
+                        fetchFromNetwork(memCache, params)
                     }
                 }
             } else {
@@ -124,7 +124,7 @@ class DataObservableDelegate<Params : Any, Domain : Any> constructor(
                             just(cached),
                             subject
                         ).doAfterSubscribe {
-                            fetchFromNetwork(params)
+                            fetchFromNetwork(cached.content, params)
                         }
                     }
                     .startWith(Data(null, loading = true))
@@ -195,10 +195,10 @@ class DataObservableDelegate<Params : Any, Domain : Any> constructor(
 
     fun reload(params: Params, await: Boolean = false): Completable = if (!await) Completable.fromAction {
         notifyFromMemory(loading = true) { it == params}
-        fetchFromNetwork(params = params)
+        fetchFromNetwork(cachedData = fromMemory(params), params = params)
     } else Completable.create { emitter ->
         notifyFromMemory(loading = true) { it == params}
-        fetchFromNetwork(params = params, onComplete = { emitter.onComplete()}, onError = { emitter.onError(it) })
+        fetchFromNetwork(cachedData = fromMemory(params), params = params, onComplete = { emitter.onComplete()}, onError = { emitter.onError(it) })
     }
 
     @Deprecated(
@@ -210,7 +210,7 @@ class DataObservableDelegate<Params : Any, Domain : Any> constructor(
     }
 
     @Suppress("CheckResult")
-    private fun fetchFromNetwork(params: Params, onComplete: () -> Unit = {}, onError:(Throwable) -> Unit = {}) {
+    private fun fetchFromNetwork(cachedData: Domain?, params: Params, onComplete: () -> Unit = {}, onError:(Throwable) -> Unit = {}) {
         val observer = LambdaObserver<Domain>(
             {
                 //all done in sharedRequest
@@ -218,7 +218,7 @@ class DataObservableDelegate<Params : Any, Domain : Any> constructor(
             }, { error ->
                 //error handling is here and not in sharedRequest
                 //because timeout also generates an error that needs to be handled
-                val data = Data(content = fromMemory(params), error = error)
+                val data = Data(content = fromMemory(params) ?: cachedData, error = error)
 
                 if (error is NoSuchElementException) {
                     failedNetworkRequests.remove(params)

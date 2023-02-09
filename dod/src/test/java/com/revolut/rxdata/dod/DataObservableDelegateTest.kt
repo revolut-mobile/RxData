@@ -937,4 +937,28 @@ class DataObservableDelegateTest {
 
         testObserver.assertValueAt(2, Data(content = domain2, error = RuntimeException()))
     }
+
+    @Test
+    fun `WHEN fromMemory returns null, fromStorage has value AND fromNetwork fails THEN subscriber receives storage value`() {
+        val networkSubject = BehaviorSubject.create<Domain>()
+        whenever(fromNetwork.invoke(eq(params))).thenReturn(networkSubject.firstOrError())
+        whenever(fromMemory.invoke(any())).thenReturn(null)
+        storage[params] = cachedDomain
+
+        val testObserver =
+            dataObservableDelegate.observe(params = params, forceReload = true).test()
+
+        testObserver.assertValueCount(1)
+        testObserver.assertValueAt(0, Data(content = null, error = null, loading = true))
+        ioScheduler.triggerActions()
+
+        testObserver.assertValueCount(2)
+        testObserver.assertValueAt(1, Data(content = cachedDomain, error = null, loading = true))
+
+        networkSubject.onError(RuntimeException())
+        ioScheduler.triggerActions()
+
+        testObserver.assertValueCount(3)
+        testObserver.assertValueAt(2, Data(content = cachedDomain, error = RuntimeException()))
+    }
 }
