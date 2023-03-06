@@ -7,7 +7,7 @@ import Versions.rxJavaVersion
 object Versions {
     const val kotlinVersion = "1.6.10"
     const val rxJavaVersion = "2.2.18"
-    const val coroutinesCoreVersion = "1.6.0"
+    const val coroutinesCoreVersion = "1.6.4"
     const val junitVersion = "5.7.2"
 }
 
@@ -22,6 +22,8 @@ object Dependencies {
 
     const val coroutinesCore =
         "org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutinesCoreVersion"
+    const val coroutinesRx2 =
+        "org.jetbrains.kotlinx:kotlinx-coroutines-rx2:$coroutinesCoreVersion"
     const val coroutinesCoreTest = "org.jetbrains.kotlinx:kotlinx-coroutines-test:$coroutinesCoreVersion"
     const val turbineCoroutinesTest = "app.cash.turbine:turbine:0.7.0"
 
