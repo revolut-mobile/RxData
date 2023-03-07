@@ -4,7 +4,7 @@ include ':sample',
         ':rx-extensions',
         ':scheduler',
         ':dfd',
-        ':dfd-wrapper',
+        ':dod-wrapper',
         ':flow-extensions'
 
 rootProject.name = 'RxData'

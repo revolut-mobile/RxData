@@ -1,4 +1,4 @@
-package com.revolut.rxdata.dfd_wrapper
+package com.revolut.rxdata.dod_wrapper
 
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -21,13 +21,16 @@ import org.jetbrains.annotations.TestOnly
  *
  */
 
-internal object DataFlowDelegateDispatchers {
+internal object DataObservableDelegateWrapperDispatchers {
 
-    private var IO = Dispatchers.IO
-    fun ioDispatcher() = IO
+    internal var IO = Dispatchers.IO
+        private set
+    internal var Unconfined = Dispatchers.Unconfined
+        private set
 
     @TestOnly
-    fun setIoDispatcher(dispatcher: CoroutineDispatcher) {
+    fun setDispatchers(dispatcher: CoroutineDispatcher) {
         IO = dispatcher
+        Unconfined = dispatcher
     }
 }

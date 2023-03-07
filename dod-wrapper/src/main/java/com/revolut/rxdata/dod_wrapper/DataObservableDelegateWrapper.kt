@@ -1,4 +1,4 @@
-package com.revolut.rxdata.dfd_wrapper
+package com.revolut.rxdata.dod_wrapper
 
 import com.revolut.data.model.Data
 import com.revolut.rxdata.dod.DataObservableDelegate
@@ -7,6 +7,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.rx2.asFlow
 import kotlinx.coroutines.rx2.await
 import kotlinx.coroutines.rx2.rxSingle
+import kotlinx.coroutines.withContext
 
 /*
  * Copyright (C) 2023 Revolut
@@ -25,8 +26,8 @@ import kotlinx.coroutines.rx2.rxSingle
  *
  */
 
-class DataFlowDelegate<Params : Any, Domain : Any>(
-    fromNetwork: suspend (params: Params) -> Domain,
+class DataObservableDelegateWrapper<Params : Any, Domain : Any>(
+    fromNetwork: suspend DataObservableDelegateWrapper<Params, Domain>.(params: Params) -> Domain,
     fromMemory: (params: Params) -> Domain?,
     toMemory: (params: Params, Domain) -> Unit,
     fromStorage: suspend (params: Params) -> Domain?,
@@ -35,7 +36,7 @@ class DataFlowDelegate<Params : Any, Domain : Any>(
 ) {
     private val inner = DataObservableDelegate<Params, Domain>(
         fromNetwork = { params ->
-            rxSingle(DataFlowDelegateDispatchers.ioDispatcher()) {
+            rxSingle(DataObservableDelegateWrapperDispatchers.Unconfined) {
                 fromNetwork(params)
             }
         },
@@ -72,8 +73,20 @@ class DataFlowDelegate<Params : Any, Domain : Any>(
      * Replaces the data in both caches (Memory, Persistent storage)
      * and emits an update.
      */
-    fun updateAll(params: Params, domain: Domain) =
-        inner.updateAll(params = params, domain = domain)
+    suspend fun updateAll(params: Params, domain: Domain) =
+        withContext(DataObservableDelegateWrapperDispatchers.IO) {
+            inner.updateAll(params = params, domain = domain)
+        }
+
+    /**
+     * Replaces the data and emits an update in persistent storage cache.
+     *
+     * /!\ Memory cache won't be dropped or replaced /!\
+     */
+    suspend fun updateStorage(params: Params, domain: Domain) =
+        withContext(DataObservableDelegateWrapperDispatchers.IO) {
+            inner.updateStorage(params = params, domain = domain)
+        }
 
     /**
      * Replaces the data and emits an update in memory cache.
@@ -92,15 +105,10 @@ class DataFlowDelegate<Params : Any, Domain : Any>(
         where: (Params) -> Boolean
     ) = inner.notifyFromMemory(error = error, loading = loading, where = where)
 
-    /**
-     * Replaces the data and emits an update in persistent storage cache.
-     *
-     * /!\ Memory cache won't be dropped or replaced /!\
-     */
-    fun updateStorage(params: Params, domain: Domain) =
-        inner.updateStorage(params = params, domain = domain)
-
-    fun remove(params: Params) = inner.remove(params = params)
+    suspend fun remove(params: Params) =
+        withContext(DataObservableDelegateWrapperDispatchers.IO) {
+            inner.remove(params = params)
+        }
 
     suspend fun reload(params: Params, await: Boolean = false) = inner.reload(
         params = params,
