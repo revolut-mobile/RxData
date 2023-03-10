@@ -7,7 +7,7 @@ import Versions.rxJavaVersion
 object Versions {
     const val kotlinVersion = "1.6.10"
     const val rxJavaVersion = "2.2.18"
-    const val coroutinesCoreVersion = "1.6.0"
+    const val coroutinesCoreVersion = "1.6.1"
     const val junitVersion = "5.7.2"
 }
 
