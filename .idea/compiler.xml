@@ -4,6 +4,8 @@
     <bytecodeTargetLevel target="11">
       <module name="RxData.dfd.main" target="1.8" />
       <module name="RxData.dfd.test" target="1.8" />
+      <module name="RxData.dod-wrapper.main" target="1.8" />
+      <module name="RxData.dod-wrapper.test" target="1.8" />
       <module name="RxData.dod.main" target="1.8" />
       <module name="RxData.dod.test" target="1.8" />
       <module name="RxData.flow-extensions.main" target="1.8" />

@@ -15,6 +15,7 @@
             <option value="$PROJECT_DIR$/buildSrc" />
             <option value="$PROJECT_DIR$/dfd" />
             <option value="$PROJECT_DIR$/dod" />
+            <option value="$PROJECT_DIR$/dod-wrapper" />
             <option value="$PROJECT_DIR$/flow-extensions" />
             <option value="$PROJECT_DIR$/model" />
             <option value="$PROJECT_DIR$/rx-extensions" />
