@@ -53,7 +53,7 @@ class DataObservableDelegate<Params : Any, Domain : Any> constructor(
     private val sharedNetworkRequest: SharedSingleRequest<Params, Domain> =
         SharedSingleRequest { params ->
             this.fromNetwork(params)
-                .doOnSuccess { domain ->
+                .doAfterSuccess { domain ->
                     failedNetworkRequests.remove(params)
 
                     toMemory(params, domain)

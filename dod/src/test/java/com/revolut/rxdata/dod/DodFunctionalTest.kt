@@ -124,7 +124,7 @@ class DodFunctionalTest {
 
         (1..count).map { num ->
             val delay = Random.nextInt(0, maxThreadDelay).toLong()
-            Thread.sleep(delay)
+            sleep(delay)
             Thread {
                 noCacheOfflineDod.observe(Unit, forceReload = true)
                     .doOnNext {
@@ -142,7 +142,6 @@ class DodFunctionalTest {
         assert(finishedWithLoadingTrueCount == 0) { "Finished with loading true count = $finishedWithLoadingTrueCount" }
     }
 
-    @Disabled("waiting for fix")
     @RepeatedTest(1000)
     fun attemptNoCacheOnlineRaceCondition() {
         val count = 3

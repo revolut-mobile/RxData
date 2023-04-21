@@ -19,14 +19,20 @@ import io.reactivex.Single
  *
  */
 
-internal class SharedSingleRequest<Params, Result : Any>(
+internal class SharedSingleRequest<Params: Any, Result : Any>(
     private val load: (params: Params) -> Single<Result>
 ) {
 
     private val sharedObservableRequest: SharedObservableRequest<Params, Result> =
         SharedObservableRequest { params ->
-            load(params).toObservable()
+            load(params)
+                .doOnSuccess { removeRequest(params) }
+                .toObservable()
         }
+
+    private fun removeRequest(params: Params) {
+        sharedObservableRequest.removeRequest(params)
+    }
 
     fun getOrLoad(params: Params): Single<Result> =
         sharedObservableRequest.getOrLoad(params).firstOrError()
