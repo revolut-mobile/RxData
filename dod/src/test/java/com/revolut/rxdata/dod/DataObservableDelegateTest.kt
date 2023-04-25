@@ -5,20 +5,21 @@ import com.revolut.rxdata.core.extensions.extractContent
 import com.revolut.rxdata.core.extensions.takeUntilLoaded
 import io.reactivex.Single
 import io.reactivex.disposables.CompositeDisposable
-import io.reactivex.plugins.RxJavaPlugins
-import io.reactivex.schedulers.TestScheduler
 import io.reactivex.subjects.BehaviorSubject
-import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.mockito.kotlin.*
-import java.io.IOException
+import org.mockito.kotlin.any
+import org.mockito.kotlin.atLeastOnce
+import org.mockito.kotlin.eq
+import org.mockito.kotlin.never
+import org.mockito.kotlin.only
+import org.mockito.kotlin.times
+import org.mockito.kotlin.verify
+import org.mockito.kotlin.verifyNoMoreInteractions
+import org.mockito.kotlin.whenever
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 
-private typealias Params = Int
-private typealias Domain = String
 
 /*
  * Copyright (C) 2019 Revolut
@@ -37,77 +38,10 @@ private typealias Domain = String
  *
  */
 
-class DataObservableDelegateTest {
-
-    private val params: Params = 0
-
-    private val cachedDomain: Domain = "cached_domain_model"
+class DataObservableDelegateTest : BaseDataObservableDelegateTest() {
 
     private val domain: Domain = "domain_model"
     private val domain2: Domain = "domain_model_2"
-
-    private val backendException = IOException("HTTP 500. All tests are green!")
-
-    private lateinit var fromNetwork: (Params) -> Single<Domain>
-
-    private val fromNetworkScoped: DataObservableDelegate<Params, Domain>.(Params) -> Single<Domain> =
-        { fromNetwork(it) }
-
-    private lateinit var toMemory: (Params, Domain) -> Unit
-
-    private lateinit var fromMemory: (Params) -> Domain
-
-    private lateinit var toStorage: (Params, Domain) -> Unit
-
-    private lateinit var fromStorage: (Params) -> Domain
-
-    private lateinit var dataObservableDelegate: DataObservableDelegate<Params, Domain>
-
-    private val computationScheduler: TestScheduler = TestScheduler()
-    private val ioScheduler: TestScheduler = TestScheduler()
-
-    private val memCache = hashMapOf<Params, Domain>()
-    private val storage = hashMapOf<Params, Domain>()
-
-    @BeforeEach
-    fun setUp() {
-        fromNetwork = mock()
-        toMemory = mock()
-        fromMemory = mock()
-        toStorage = mock()
-        fromStorage = mock()
-
-        dataObservableDelegate = DataObservableDelegate(
-            fromNetwork = fromNetworkScoped,
-            fromMemory = fromMemory,
-            toMemory = toMemory,
-            fromStorage = fromStorage,
-            toStorage = toStorage
-        )
-
-        memCache.clear()
-        storage.clear()
-
-        whenever(fromMemory.invoke(any())).thenAnswer { invocation -> memCache[invocation.arguments[0]] }
-        whenever(toMemory.invoke(any(), any())).thenAnswer { invocation ->
-            memCache[invocation.arguments[0] as Params] = invocation.arguments[1] as Domain
-            Unit
-        }
-
-        whenever(fromStorage.invoke(any())).thenAnswer { invocation -> storage[invocation.arguments[0]] }
-        whenever(toStorage.invoke(any(), any())).thenAnswer { invocation ->
-            storage[invocation.arguments[0] as Params] = invocation.arguments[1] as Domain
-            Unit
-        }
-
-        RxJavaPlugins.setIoSchedulerHandler { ioScheduler }
-        RxJavaPlugins.setComputationSchedulerHandler { computationScheduler }
-    }
-
-    @AfterEach
-    fun afterEach() {
-        RxJavaPlugins.reset()
-    }
 
     @Test
     fun `FORCE observing data when memory cache IS EMPTY and storage IS EMPTY`() {
@@ -775,77 +709,6 @@ class DataObservableDelegateTest {
         testObserver.assertValueAt(0, Data(content = null, error = null, loading = true))
         testObserver.assertValueAt(1, Data(content = null, error = error, loading = true))
         testObserver.assertValueAt(2, Data(content = domain, error = null, loading = false))
-    }
-
-
-    @Test
-    fun `WHEN memoryIsEmpty and dod is observed multiple times THEN fromStorage is called once`() {
-        val counter = AtomicInteger(0);
-
-        whenever(fromNetwork.invoke(eq(params))).thenReturn(Single.fromCallable { domain })
-        whenever(fromStorage.invoke(eq(params))).thenAnswer {
-            counter.incrementAndGet()
-            cachedDomain
-        }
-
-        dataObservableDelegate.observe(params = params, forceReload = true).test()
-        dataObservableDelegate.observe(params = params, forceReload = true).test()
-        dataObservableDelegate.observe(params = params, forceReload = true).test()
-
-        ioScheduler.triggerActions()
-
-        assertEquals(1, counter.get())
-    }
-
-    @Test
-    fun `WHEN forceReload dod switchMaps to the same forceReload dod THEN emissions are muted after 2nd iteration`() {
-        whenever(fromNetwork.invoke(eq(params))).thenReturn(Single.fromCallable { cachedDomain })
-        storage[params] = cachedDomain
-        memCache.remove(params)
-
-        dataObservableDelegate.observe(params = params, forceReload = true).take(100)
-            .switchMap {
-                dataObservableDelegate.observe(params = params, forceReload = true).take(100)
-            }
-            .test()
-            .apply {
-                ioScheduler.triggerActions()
-            }
-            .assertValueCount(6)
-    }
-
-    @Test
-    fun `WHEN dod switchMaps to the same forceReload dod THEN emissions are muted after 2nd iteration`() {
-        whenever(fromNetwork.invoke(eq(params))).thenReturn(Single.fromCallable { cachedDomain })
-        storage[params] = cachedDomain
-        memCache.remove(params)
-
-        dataObservableDelegate.observe(params = params).take(100)
-            .switchMap {
-                dataObservableDelegate.observe(params = params, forceReload = true).take(100)
-            }
-            .test()
-            .apply {
-                ioScheduler.triggerActions()
-            }
-            .assertValueCount(6)
-    }
-
-    @Test
-    fun `WHEN dod switchMaps to the same forceReload dod AND fromNetwork returns errors THEN emissions are muted after 2nd iteration`() {
-        whenever(fromNetwork.invoke(eq(params))).thenReturn(Single.fromCallable { throw backendException })
-        storage[params] = cachedDomain
-        memCache.remove(params)
-
-        dataObservableDelegate.observe(params = params).take(100)
-            .switchMap {
-                dataObservableDelegate.observe(params = params, forceReload = true).take(100)
-            }
-            .test()
-            .apply {
-                ioScheduler.triggerActions()
-            }
-            .assertValueCount(8)
     }
 
     @Test
