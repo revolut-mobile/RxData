@@ -1,8 +1,8 @@
 package com.revolut.rxdata.dod
 
 import io.reactivex.Observable
-import io.reactivex.schedulers.Schedulers
-import java.util.*
+import io.reactivex.schedulers.Schedulers.io
+import java.util.concurrent.ConcurrentHashMap
 
 /*
  * Copyright (C) 2019 Revolut
@@ -21,33 +21,27 @@ import java.util.*
  *
  */
 
-internal class SharedObservableRequest<Params, Result>(
-    private val load: (params: Params) -> Observable<Result>
+internal class SharedObservableRequest<Params : Any, Result>(
+    private val load: (params: Params) -> Observable<Result>,
 ) {
 
-    private val requests = HashMap<Params, Observable<Result>>()
+    private val requests = ConcurrentHashMap<Params, Observable<Result>>()
+
+    fun removeRequest(params: Params) {
+        requests.remove(params)
+    }
 
     fun getOrLoad(params: Params): Observable<Result> {
         return Observable
             .defer {
-                synchronized(requests) {
-                    requests[params]?.let { cachedShared ->
-                        return@defer cachedShared
-                    }
-
-                    val newShared = load(params)
-                        .observeOn(Schedulers.io())
-                        .doFinally {
-                            synchronized(requests) { requests.remove(params) }
-                        }
+                requests.getOrCreate(params) {
+                    load(params)
+                        .observeOn(io())
+                        .doFinally { removeRequest(params) }
                         .replay(1)
                         .refCount()
-
-                    requests[params] = newShared
-                    return@defer newShared
                 }
-            }.subscribeOn(Schedulers.io())
-
+            }.subscribeOn(io())
     }
 
 }
