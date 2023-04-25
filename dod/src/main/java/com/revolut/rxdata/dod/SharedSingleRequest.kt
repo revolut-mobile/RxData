@@ -27,7 +27,6 @@ internal class SharedSingleRequest<Params: Any, Result : Any>(
         SharedObservableRequest { params ->
             load(params)
                 .doOnSuccess { removeRequest(params) }
-                .doOnError { removeRequest(params) }
                 .toObservable()
         }
 
