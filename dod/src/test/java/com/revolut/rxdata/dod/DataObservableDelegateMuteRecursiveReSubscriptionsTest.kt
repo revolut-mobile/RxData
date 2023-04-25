@@ -1,6 +1,8 @@
 package com.revolut.rxdata.dod
 
+import com.revolut.data.model.Data
 import io.reactivex.Single
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.ValueSource
@@ -17,15 +19,28 @@ class DataObservableDelegateMuteRecursiveReSubscriptionsTest : BaseDataObservabl
         storage[params] = cachedDomain
         memCache.remove(params)
 
+        val upstreamEmissions = ArrayList<Data<Domain>>()
+
         dataObservableDelegate.observe(params = params, forceReload = forceReload).take(100)
+            .doOnNext { upstreamEmissions.add(it) }
             .switchMap {
                 dataObservableDelegate.observe(params = params, forceReload = true).take(100)
             }
             .test()
-            .apply {
-                ioScheduler.triggerActions()
-            }
-            .assertValueCount(8)
+            .apply { ioScheduler.triggerActions() }
+
+        assertEquals(
+            listOf(
+                Data(null, null, true),
+                // 1st iteration
+                Data(cachedDomain, null, true),
+                Data(cachedDomain, null, false),
+                // 2nd iteration
+                Data(cachedDomain, null, true),
+                Data(cachedDomain, null, false),
+                // no emits after this point
+            ), upstreamEmissions
+        )
     }
 
     @Test
@@ -34,15 +49,28 @@ class DataObservableDelegateMuteRecursiveReSubscriptionsTest : BaseDataObservabl
         storage[params] = cachedDomain
         memCache.remove(params)
 
+        val upstreamEmissions = ArrayList<Data<Domain>>()
+
         dataObservableDelegate.observe(params = params).take(100)
+            .doOnNext { upstreamEmissions.add(it) }
             .switchMap {
                 dataObservableDelegate.observe(params = params, forceReload = true).take(100)
             }
             .test()
-            .apply {
-                ioScheduler.triggerActions()
-            }
-            .assertValueCount(8)
+            .apply { ioScheduler.triggerActions() }
+
+        assertEquals(
+            listOf(
+                Data(null, null, true),
+                // 1st iteration
+                Data(cachedDomain, null, true),
+                Data(cachedDomain, backendException, false),
+                // 2nd iteration
+                Data(cachedDomain, null, true),
+                Data(cachedDomain, backendException, false),
+                // no emits after this point
+            ), upstreamEmissions
+        )
     }
 
 }

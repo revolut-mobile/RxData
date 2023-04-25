@@ -3,6 +3,7 @@ package com.revolut.rxdata.dod
 import com.revolut.data.model.Data
 import io.reactivex.Single
 import org.junit.jupiter.api.Assertions
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.whenever
@@ -39,7 +40,7 @@ class DataObservableDelegateSharedStorageRequestTest : BaseDataObservableDelegat
 
         ioScheduler.triggerActions()
 
-        Assertions.assertEquals(1, counter.get())
+        assertEquals(1, counter.get())
     }
 
 }
