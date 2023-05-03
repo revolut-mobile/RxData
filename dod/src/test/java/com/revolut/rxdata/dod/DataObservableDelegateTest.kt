@@ -174,6 +174,32 @@ class DataObservableDelegateTest : BaseDataObservableDelegateTest() {
     }
 
     @Test
+    fun `WHEN error is thrown in toStorage THEN it's emitted as Data error`() {
+        whenever(fromNetwork.invoke(eq(params))).thenReturn(Single.fromCallable { domain })
+        whenever(toStorage.invoke(any(), any())).thenThrow(IllegalStateException())
+
+        val testObserver = dataObservableDelegate.observe(params = params).test()
+
+        ioScheduler.triggerActions()
+
+        testObserver.assertValueAt(0, Data(content = null, error = null, loading = true))
+        testObserver.assertValueAt(1, Data(content = domain, error = IllegalStateException(), loading = false))
+    }
+
+    @Test
+    fun `WHEN error is thrown in toMemory THEN it's emitted as Data error`() {
+        whenever(fromNetwork.invoke(eq(params))).thenReturn(Single.fromCallable { domain })
+        whenever(toMemory.invoke(any(), any())).thenThrow(IllegalStateException())
+
+        val testObserver = dataObservableDelegate.observe(params = params).test()
+
+        ioScheduler.triggerActions()
+
+        testObserver.assertValueAt(0, Data(content = null, error = null, loading = true))
+        testObserver.assertValueAt(1, Data(content = null, error = IllegalStateException(), loading = false))
+    }
+
+    @Test
     fun `WHEN unsubscribed from network and data NOT arrives in 60 seconds THEN data not saved`() {
         DodGlobal.networkTimeoutSeconds = 60L
 
