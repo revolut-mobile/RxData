@@ -1,9 +1,10 @@
 package com.revolut.rxdata.dod
 
+import com.revolut.rxdata.core.extensions.skipWhileLoading
 import com.revolut.rxdata.core.extensions.takeUntilLoaded
 import io.reactivex.Single
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.RepeatedTest
+import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.TestInstance.Lifecycle.PER_CLASS
 import org.junit.jupiter.api.parallel.Execution
@@ -11,7 +12,7 @@ import org.junit.jupiter.api.parallel.ExecutionMode.CONCURRENT
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.MethodSource
 import org.mockito.kotlin.*
-import java.lang.IllegalStateException
+import java.lang.Thread.currentThread
 import java.lang.Thread.sleep
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit.MILLISECONDS
@@ -129,7 +130,7 @@ class DodFunctionalTest {
             it.join(maxNetworkEventAwaitMillis)
         }
 
-        assert(completedCounter.get() == count) { "Only ${completedCounter.get()} streams terminated"}
+        assert(completedCounter.get() == count) { "Only ${completedCounter.get()} streams terminated" }
     }
 
     @RepeatedTest(1000)
@@ -184,6 +185,20 @@ class DodFunctionalTest {
 
         val finishedWithLoadingTrueCount = isLastEmitLoadingMap.count { it.value }
         assert(finishedWithLoadingTrueCount == 0) { "Finished with loading true count = $finishedWithLoadingTrueCount" }
+    }
+
+
+    @Test
+    fun shouldNotEmitOnInterruptedThreads() {
+        val interrupted = noCacheOnlineDod.observe(Unit).skipWhileLoading().takeUntilLoaded().firstOrError()
+            .flatMap {
+                Single.fromCallable {
+                    println("Thread interrupted is: ${currentThread().isInterrupted}")
+                    currentThread().isInterrupted
+                }
+            }.blockingGet()
+
+        assert(!interrupted)
     }
 
 }

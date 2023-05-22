@@ -1,13 +1,11 @@
 package com.revolut.rxdata.dod
 
 import io.reactivex.Observable
-import io.reactivex.plugins.RxJavaPlugins
-import io.reactivex.schedulers.TestScheduler
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
-import org.junit.jupiter.api.BeforeAll
-import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import java.lang.Thread.sleep
+import java.util.concurrent.atomic.AtomicInteger
 
 /*
  * Copyright (C) 2019 Revolut
@@ -25,55 +23,49 @@ import org.junit.jupiter.api.Test
  * limitations under the License.
  *
  */
-
+@Suppress("CheckResult")
 class SharedObservableRequestTest {
 
-    private var loadCounter = 0
-
-    private val ioScheduler: TestScheduler = TestScheduler()
-
-    @BeforeEach
-    fun setUp() {
-        RxJavaPlugins.setIoSchedulerHandler { ioScheduler }
-    }
+    private var loadCounter = AtomicInteger(0)
 
     @Test
     fun `when requested first time then loading started`() {
         val cache = createCache()
 
         cache.getOrLoad(params = "1").subscribe()
-        ioScheduler.triggerActions()
+        sleep(150)
 
-        assertEquals(1, loadCounter)
+        assertEquals(1, loadCounter.get())
     }
 
     @Test
     fun `when request 2 times one by one then only one loading started`() {
         val cache = createCache()
-        lateinit var result1: Any
-        lateinit var result2: Any
+        lateinit var result1: String
+        lateinit var result2: String
 
         cache.getOrLoad(params = "1").subscribe { result -> result1 = result }
         cache.getOrLoad(params = "1").subscribe { result -> result2 = result }
-        ioScheduler.triggerActions()
+        sleep(150)
 
-        assertEquals(1, loadCounter)
+        assertEquals(1, loadCounter.get())
         assertEquals(result1, result2)
     }
 
     @Test
-    fun `when request 2 times with same key and 1 time with different key one by one then 2 loadings started`() {
+    fun  `when request 2 times with same key and 1 time with different key one by one then 2 loadings started`() {
         val cache = createCache()
-        lateinit var result1: Any
-        lateinit var result2: Any
-        lateinit var result3: Any
+
+        lateinit var result1: String
+        lateinit var result2: String
+        lateinit var result3: String
 
         cache.getOrLoad(params = "1").subscribe { result -> result1 = result }
         cache.getOrLoad(params = "1").subscribe { result -> result2 = result }
         cache.getOrLoad(params = "2").subscribe { result -> result3 = result }
-        ioScheduler.triggerActions()
+        sleep(150)
 
-        assertEquals(2, loadCounter)
+        assertEquals(2, loadCounter.get())
         assertEquals(result1, result2)
         assertNotEquals(result1, result3)
     }
@@ -81,35 +73,40 @@ class SharedObservableRequestTest {
     @Test
     fun `when request 2 times one by one with different keys then both loading started`() {
         val cache = createCache()
-        lateinit var result1: Any
-        lateinit var result2: Any
+        lateinit var result1: String
+        lateinit var result2: String
 
         cache.getOrLoad(params = "1").subscribe { result -> result1 = result }
         cache.getOrLoad(params = "2").subscribe { result -> result2 = result }
-        ioScheduler.triggerActions()
+        sleep(150)
 
-        assertEquals(2, loadCounter)
+        assertEquals(2, loadCounter.get())
         assertNotEquals(result1, result2)
     }
 
     @Test
     fun `when request 2 times with waiting then both loading started`() {
         val cache = createCache()
-        lateinit var result1: Any
-        lateinit var result2: Any
+        lateinit var result1: String
+        lateinit var result2: String
 
         cache.getOrLoad(params = "1").subscribe { result -> result1 = result }
-        ioScheduler.triggerActions()
+        sleep(150)
         cache.getOrLoad(params = "1").subscribe { result -> result2 = result }
-        ioScheduler.triggerActions()
-
-        assertEquals(2, loadCounter)
-        assertNotEquals(result1, result2)
+        sleep(150)
+        
+        assertEquals(2, loadCounter.get())
+        assertEquals(result1, result2)
     }
 
-    private fun createCache(): SharedObservableRequest<Any, Any> {
-        return SharedObservableRequest(
-            load = { Observable.just(Any().also { loadCounter++ }) }
-        )
-    }
+    private fun createCache(): SharedObservableRequest<String, String> = SharedObservableRequest(
+        load = { params ->
+            Observable.fromCallable {
+                sleep(100)
+                "$params result"
+            }.doOnSubscribe {
+                loadCounter.incrementAndGet()
+            }
+        }
+    )
 }

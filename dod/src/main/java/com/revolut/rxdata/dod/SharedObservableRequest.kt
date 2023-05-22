@@ -36,7 +36,6 @@ internal class SharedObservableRequest<Params : Any, Result>(
             .defer {
                 requests.getOrCreate(params) {
                     load(params)
-                        .observeOn(io())
                         .doFinally { removeRequest(params) }
                         .replay(1)
                         .refCount()
