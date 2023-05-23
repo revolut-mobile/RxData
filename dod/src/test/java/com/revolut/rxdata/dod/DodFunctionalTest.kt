@@ -193,8 +193,12 @@ class DodFunctionalTest {
         val interrupted = noCacheOnlineDod.observe(Unit).skipWhileLoading().takeUntilLoaded().firstOrError()
             .flatMap {
                 Single.fromCallable {
-                    println("Thread interrupted is: ${currentThread().isInterrupted}")
-                    currentThread().isInterrupted
+                    try {
+                        sleep(100)
+                        false
+                    } catch (e: InterruptedException) {
+                        true
+                    }
                 }
             }.blockingGet()
 
