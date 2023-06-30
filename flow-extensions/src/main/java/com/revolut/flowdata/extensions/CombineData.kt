@@ -2,7 +2,6 @@ package com.revolut.flowdata.extensions
 
 import com.revolut.data.model.Data
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.combine
 
 /*
  * Copyright (C) 2022 Revolut
@@ -21,32 +20,21 @@ import kotlinx.coroutines.flow.combine
  *
  */
 
+@Deprecated(
+    message = "The method name is misleading. Use newer version combineContent",
+    replaceWith = ReplaceWith("com.revolut.flowdata.extensions.combineContent")
+)
 fun <A : Any, B : Any> combineData(
     a: Flow<Data<A>>,
     b: Flow<Data<B>>
-): Flow<Data<Pair<A, B>>> = combine(a, b) { _a, _b ->
-    val aContent = _a.content
-    val bContent = _b.content
+): Flow<Data<Pair<A, B>>> = combineContent(a, b)
 
-    val data: Pair<A, B>? = when {
-        aContent != null && bContent != null -> aContent to bContent
-        else -> null
-    }
-
-    val error = listOfNotNull(_a.error, _b.error).takeUnless { it.isEmpty() }?.let {
-        CompositeException(it)
-    }
-    Data(
-        content = data,
-        loading = _a.loading || _b.loading,
-        error = error
-    )
-}
-
-
+@Deprecated(
+    message = "The method name is misleading. Use newer version combineContent",
+    replaceWith = ReplaceWith("com.revolut.flowdata.extensions.combineContent")
+)
 fun <A : Any, B : Any, C : Any> combineData(
     a: Flow<Data<A>>,
     b: Flow<Data<B>>,
     c: Flow<Data<C>>
-): Flow<Data<Triple<A, B, C>>> = combineData(combineData(a, b), c)
-    .mapData { (ab, c) -> Triple(ab.first, ab.second, c) }
+): Flow<Data<Triple<A, B, C>>> = combineContent(a, b, c)
