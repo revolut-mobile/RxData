@@ -41,6 +41,20 @@ inline fun <T, R> Data<T>.mapData(block: (T) -> R?): Data<R> = try {
     )
 }
 
+suspend inline fun <T, R> Data<T>.mapDataSuspended(crossinline block: suspend (T) -> R?): Data<R> = try {
+    Data(
+        content = content?.let { block(it) },
+        error = error,
+        loading = loading
+    )
+} catch (t: Throwable) {
+    Data(
+        content = null,
+        error = t,
+        loading = loading
+    )
+}
+
 inline fun <T> Data<T>.mapDataErrorToContent(block: (Throwable) -> T?): Data<T> {
     return if (error != null) {
         try {
