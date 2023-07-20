@@ -3,7 +3,7 @@ package com.revolut.flowdata.extensions
 import com.revolut.data.model.Data
 import com.revolut.data.model.extensions.mapData
 import com.revolut.data.model.extensions.mapDataErrorToContent
-import com.revolut.data.model.extensions.mapDataSuspended
+import com.revolut.data.model.extensions.mapContentSuspended
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
@@ -27,8 +27,8 @@ import kotlinx.coroutines.flow.map
 fun <T, R> Flow<Data<T>>.mapData(block: (T) -> R?): Flow<Data<R>> =
     map { data -> data.mapData(block) }
 
-fun <T, R> Flow<Data<T>>.mapDataSuspended(block: suspend (T) -> R?): Flow<Data<R>> =
-    map { data -> data.mapDataSuspended(block) }
+fun <T, R> Flow<Data<T>>.mapContentSuspended(block: suspend (T) -> R?): Flow<Data<R>> =
+    map { data -> data.mapContentSuspended(block) }
 
 fun <T> Flow<Data<T>>.mapDataErrorToContent(block: (Throwable) -> T?): Flow<Data<T>> =
     map { data -> data.mapDataErrorToContent(block) }

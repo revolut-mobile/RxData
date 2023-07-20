@@ -3,6 +3,7 @@ package com.revolut.flowdata.extensions
 import app.cash.turbine.test
 import com.revolut.data.model.Data
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -43,9 +44,9 @@ class MapDataKtTest {
     }
 
     @Test
-    fun `GIVEN content WHEN mapData THEN return new data`() = runTest {
+    fun `GIVEN content WHEN mapContentSuspended THEN return new data`() = runTest {
         flowOf(Data(content = Unit))
-            .mapDataSuspended { emptyList<Int>() }
+            .mapContentSuspended { emptyList<Int>() }
             .test {
                 assertEquals(Data(content = emptyList<Int>(), error = null, loading = false), awaitItem())
                 awaitComplete()
@@ -53,12 +54,38 @@ class MapDataKtTest {
     }
 
     @Test
-    fun `GIVEN content and exception thrown by the modifying function WHEN mapData THEN data contains exception`() = runTest {
+    fun `GIVEN content and exception thrown by the modifying function WHEN mapContentSuspended THEN data contains exception`() = runTest {
         flowOf(Data(content = Unit, error = null, loading = false))
-            .mapDataSuspended { throw Exception() }
+            .mapContentSuspended { throw Exception() }
             .test {
                 assertEquals(Data(content = null, error = Exception(), loading = false), awaitItem())
                 awaitComplete()
             }
     }
+
+    @Test
+    fun `GIVEN content and delay WHEN mapContentSuspended THEN return new data`() = runTest {
+        flowOf(Data(content = Unit))
+            .mapContentSuspended {
+                delay(1)
+                emptyList<Int>()
+            }.test {
+                assertEquals(Data(content = emptyList<Int>(), error = null, loading = false), awaitItem())
+                awaitComplete()
+            }
+    }
+
+    @Test
+    fun `GIVEN content and delay and exception thrown by the modifying function WHEN mapContentSuspended THEN data contains exception`() =
+        runTest {
+            flowOf(Data(content = Unit, error = null, loading = false))
+                .mapContentSuspended {
+                    delay(1)
+                    throw Exception()
+                }
+                .test {
+                    assertEquals(Data(content = null, error = Exception(), loading = false), awaitItem())
+                    awaitComplete()
+                }
+        }
 }
