@@ -1,6 +1,5 @@
-package com.revolut.data
+package com.revolut.data.model
 
-import com.revolut.data.model.Data
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 

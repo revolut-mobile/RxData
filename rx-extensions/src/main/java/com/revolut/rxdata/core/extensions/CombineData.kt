@@ -2,36 +2,22 @@ package com.revolut.rxdata.core.extensions
 
 import com.revolut.data.model.Data
 import io.reactivex.Observable
-import io.reactivex.Observable.combineLatest
-import io.reactivex.exceptions.CompositeException
 
-
+@Deprecated(
+    message = "The method name is misleading. Use newer version combineLatestContent",
+    replaceWith = ReplaceWith("com.revolut.rxdata.core.extensions.combineLatestContent")
+)
 fun <A : Any, B : Any> combineLatestData(
     a: Observable<Data<A>>,
     b: Observable<Data<B>>
-): Observable<Data<Pair<A, B>>> = combineLatest(a, b, { _a, _b ->
-    val aContent = _a.content
-    val bContent = _b.content
+): Observable<Data<Pair<A, B>>> = combineLatestContent(a, b)
 
-    val data: Pair<A, B>? = when {
-        aContent != null && bContent != null -> aContent to bContent
-        else -> null
-    }
-
-    val error = listOfNotNull(_a.error, _b.error).takeUnless { it.isEmpty() }?.let {
-        CompositeException(*it.toTypedArray())
-    }
-    Data(
-        content = data,
-        loading = _a.loading || _b.loading,
-        error = error
-    )
-})
-
-
+@Deprecated(
+    message = "The method name is misleading. Use newer version combineLatestContent",
+    replaceWith = ReplaceWith("com.revolut.rxdata.core.extensions.combineLatestContent")
+)
 fun <A : Any, B : Any, C : Any> combineLatestData(
     a: Observable<Data<A>>,
     b: Observable<Data<B>>,
     c: Observable<Data<C>>
-): Observable<Data<Triple<A, B, C>>> = combineLatestData(combineLatestData(a, b), c)
-    .mapData { (ab, c) -> Triple(ab.first, ab.second, c) }
+): Observable<Data<Triple<A, B, C>>> = combineLatestContent(a, b, c)

@@ -10,6 +10,7 @@ dependencies {
     testImplementation(Dependencies.jupiterApi)
     testImplementation(Dependencies.mockitoKotlin)
     testImplementation(Dependencies.mockitoInline)
+    testImplementation(Dependencies.coroutinesCoreTest)
 }
 
 plugins.withId("com.vanniktech.maven.publish") {
