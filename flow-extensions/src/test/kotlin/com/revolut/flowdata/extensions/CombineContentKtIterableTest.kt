@@ -4,6 +4,7 @@ import com.revolut.data.model.Data
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.flowOf
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -59,5 +60,27 @@ class CombineContentKtIterableTest {
 
         Assertions.assertEquals("01239", awaitItem())
         expectNoEvents()
+    }
+
+    @Test
+    fun `Combined value should be the same for vararg and list parameters`() = runFlowTest(testCombined) {
+        flows.forEachIndexed { index, flow -> flow.emit(Data("$index")) }
+        val combinedFromList = expectMostRecentItem()
+
+        val varargFlowCombinedFlow = combineContent(
+            flowOf(Data("0")),
+            flowOf(Data("1")),
+            flowOf(Data("2")),
+            flowOf(Data("3")),
+            flowOf(Data("4")),
+        )
+            .mapData { dataList -> dataList.joinToString(separator = "") }
+            .extractContent()
+
+        runFlowTest(varargFlowCombinedFlow) {
+            val combinedFromVararg = expectMostRecentItem()
+
+            Assertions.assertEquals(combinedFromList, combinedFromVararg)
+        }
     }
 }
