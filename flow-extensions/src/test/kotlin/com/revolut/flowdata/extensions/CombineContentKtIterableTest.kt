@@ -4,7 +4,9 @@ import com.revolut.data.model.Data
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -63,11 +65,53 @@ class CombineContentKtIterableTest {
     }
 
     @Test
+    fun `Combined value should be the same for pair and list parameters`() = runTest {
+        val combinedListFlow = combineContent(
+            listOf(
+                flowOf(Data("a")),
+                flowOf(Data("b")),
+            )
+        ).mapData { dataList -> dataList.joinToString(separator = "") }.extractContent()
+
+        val combinedPairFlow = combineContent(
+            flowOf(Data("a")),
+            flowOf(Data("b")),
+        ).mapData { (a, b) -> a + b }.extractContent()
+
+        val combinedListData = combinedListFlow.first()
+        val combinedPairData = combinedPairFlow.first()
+
+        Assertions.assertEquals(combinedListData, combinedPairData)
+    }
+
+    @Test
+    fun `Combined value should be the same for triple and list parameters`() = runTest {
+        val combinedListFlow = combineContent(
+            listOf(
+                flowOf(Data("a")),
+                flowOf(Data("b")),
+                flowOf(Data("c")),
+            )
+        ).mapData { dataList -> dataList.joinToString(separator = "") }.extractContent()
+
+        val combinedTripleFlow = combineContent(
+            flowOf(Data("a")),
+            flowOf(Data("b")),
+            flowOf(Data("c")),
+        ).mapData { (a, b, c) -> a + b + c }.extractContent()
+
+        val combinedListData = combinedListFlow.first()
+        val combinedTripleData = combinedTripleFlow.first()
+
+        Assertions.assertEquals(combinedListData, combinedTripleData)
+    }
+
+    @Test
     fun `Combined value should be the same for vararg and list parameters`() = runFlowTest(testCombined) {
         flows.forEachIndexed { index, flow -> flow.emit(Data("$index")) }
         val combinedFromList = expectMostRecentItem()
 
-        val varargFlowCombinedFlow = combineContent(
+        val varargCombinedFlow = combineContent(
             flowOf(Data("0")),
             flowOf(Data("1")),
             flowOf(Data("2")),
@@ -77,10 +121,8 @@ class CombineContentKtIterableTest {
             .mapData { dataList -> dataList.joinToString(separator = "") }
             .extractContent()
 
-        runFlowTest(varargFlowCombinedFlow) {
-            val combinedFromVararg = expectMostRecentItem()
+        val combinedFromVararg = varargCombinedFlow.first()
 
-            Assertions.assertEquals(combinedFromList, combinedFromVararg)
-        }
+        Assertions.assertEquals(combinedFromList, combinedFromVararg)
     }
 }
