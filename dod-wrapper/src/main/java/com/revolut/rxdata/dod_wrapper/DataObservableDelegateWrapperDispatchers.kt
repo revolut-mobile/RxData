@@ -21,16 +21,26 @@ import org.jetbrains.annotations.TestOnly
  *
  */
 
-internal object DataObservableDelegateWrapperDispatchers {
+object DataObservableDelegateWrapperDispatchers {
 
-    internal var IO = Dispatchers.IO
+    internal lateinit var IO: CoroutineDispatcher
         private set
-    internal var Unconfined = Dispatchers.Unconfined
+    internal lateinit var Unconfined: CoroutineDispatcher
         private set
+
+    init {
+        resetDispatchers()
+    }
 
     @TestOnly
     fun setDispatchers(dispatcher: CoroutineDispatcher) {
         IO = dispatcher
         Unconfined = dispatcher
+    }
+
+    @TestOnly
+    fun resetDispatchers() {
+        IO = Dispatchers.IO
+        Unconfined = Dispatchers.Unconfined
     }
 }

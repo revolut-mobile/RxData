@@ -239,7 +239,7 @@ class DataObservableDelegateWrapperTest {
         memoryCache.remove(params)
         storage.remove(params)
     }
-
-    // inspired by Kotest
-    private infix fun <T, U : T> T.shouldBe(expected: U?) = assertEquals(expected, this)
 }
+
+// inspired by Kotest
+internal infix fun <T, U : T> T.shouldBe(expected: U?) = assertEquals(expected, this)
