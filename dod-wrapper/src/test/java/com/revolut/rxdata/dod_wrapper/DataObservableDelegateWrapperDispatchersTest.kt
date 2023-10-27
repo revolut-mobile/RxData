@@ -9,6 +9,7 @@ import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Test
 import kotlin.coroutines.ContinuationInterceptor
 import kotlin.time.Duration.Companion.seconds
@@ -17,12 +18,9 @@ import kotlin.time.Duration.Companion.seconds
 class DataObservableDelegateWrapperDispatchersTest {
 
     @Test
-    fun `GIVEN wrapper WHEN setDispatchers THEN use test dispatchers`() = runTest(dispatchTimeoutMs = 1_000) {
+    fun `GIVEN wrapper WHEN set test dispatchers THEN skip delays`() = runTest(dispatchTimeoutMs = 1_000) {
         val testDispatcher = UnconfinedTestDispatcher(testScheduler)
-
         DataObservableDelegateWrapperDispatchers.setDispatchers(testDispatcher)
-        DataObservableDelegateWrapperDispatchers.IO shouldBe testDispatcher
-        DataObservableDelegateWrapperDispatchers.Unconfined shouldBe testDispatcher
 
         lateinit var networkDispatcher: CoroutineDispatcher
 
@@ -43,9 +41,28 @@ class DataObservableDelegateWrapperDispatchersTest {
             awaitItem() shouldBe Data("from network")
         }
         networkDispatcher shouldBe testDispatcher
+    }
+
+    @Test
+    fun `WHEN setDispatchers THEN set test dispatchers`() = runTest {
+        val testDispatcher = UnconfinedTestDispatcher(testScheduler)
+
+        DataObservableDelegateWrapperDispatchers.setDispatchers(testDispatcher)
+        DataObservableDelegateWrapperDispatchers.IO shouldBe testDispatcher
+        DataObservableDelegateWrapperDispatchers.Unconfined shouldBe testDispatcher
+    }
+
+    @Test
+    fun `WHEN resetDispatchers THEN reset original dispatchers`() = runTest {
+        DataObservableDelegateWrapperDispatchers.setDispatchers(UnconfinedTestDispatcher(testScheduler))
 
         DataObservableDelegateWrapperDispatchers.resetDispatchers()
         DataObservableDelegateWrapperDispatchers.IO shouldBe Dispatchers.IO
         DataObservableDelegateWrapperDispatchers.Unconfined shouldBe Dispatchers.Unconfined
+    }
+
+    @AfterEach
+    fun afterEach() {
+        DataObservableDelegateWrapperDispatchers.resetDispatchers()
     }
 }
