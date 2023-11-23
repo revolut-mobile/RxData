@@ -98,9 +98,7 @@ class DataObservableDelegate<Params : Any, Domain : Any> constructor(
      * Requests data from network and subscribes to updates
      * (can be triggered by other subscribers or manual cache overrides)
      *
-     * @param loadingStrategy - if [LoadingStrategy.ForceReload] - network request will be made even if data exists in caches,
-     * if [LoadingStrategy.Auto] - network request will be made if the data doesn't exist in the memory cache
-     * if [LoadingStrategy.LazyReload] - network request will be made if the data doesn't exist in the memory cache or in the storage
+     * @param loadingStrategy - [LoadingStrategy]
      */
     fun observe(params: Params, loadingStrategy: LoadingStrategy): Observable<Data<Domain>> =
         Observable.defer {
