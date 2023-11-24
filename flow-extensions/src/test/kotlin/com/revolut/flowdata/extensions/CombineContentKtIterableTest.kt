@@ -107,6 +107,99 @@ class CombineContentKtIterableTest {
     }
 
     @Test
+    fun `Combined value should be the same for quadruple and content`() = runTest {
+        val content = combineContent(
+            flowOf(Data("a")),
+            flowOf(Data("b")),
+            flowOf(Data("c")),
+            flowOf(Data("d")),
+        ) { a, b, c, d -> a + b + c + d }
+            .first()
+
+        Assertions.assertEquals(content, Data("abcd"))
+    }
+
+    @Test
+    fun `Combined value should be the same for quintuple and content`() = runTest {
+        val content = combineContent(
+            flowOf(Data("a")),
+            flowOf(Data("b")),
+            flowOf(Data("c")),
+            flowOf(Data("d")),
+            flowOf(Data("e")),
+        ) { a, b, c, d, e -> a + b + c + d + e }
+            .first()
+
+        Assertions.assertEquals(content, Data("abcde"))
+    }
+
+    @Test
+    fun `Combined value should be the same for sextuple and content`() = runTest {
+        val content = combineContent(
+            flowOf(Data("a")),
+            flowOf(Data("b")),
+            flowOf(Data("c")),
+            flowOf(Data("d")),
+            flowOf(Data("e")),
+            flowOf(Data("f")),
+        ) { a, b, c, d, e, f -> a + b + c + d + e + f }
+            .first()
+
+        Assertions.assertEquals(content, Data("abcdef"))
+    }
+
+    @Test
+    fun `Combined value should be the same for septuple and content`() = runTest {
+        val content = combineContent(
+            flowOf(Data("a")),
+            flowOf(Data("b")),
+            flowOf(Data("c")),
+            flowOf(Data("d")),
+            flowOf(Data("e")),
+            flowOf(Data("f")),
+            flowOf(Data("g")),
+        ) { a, b, c, d, e, f, g -> a + b + c + d + e + f + g }
+            .first()
+
+        Assertions.assertEquals(content, Data("abcdefg"))
+    }
+
+    @Test
+    fun `Combined value should be the same for octuple and content`() = runTest {
+        val content = combineContent(
+            flowOf(Data("a")),
+            flowOf(Data("b")),
+            flowOf(Data("c")),
+            flowOf(Data("d")),
+            flowOf(Data("e")),
+            flowOf(Data("f")),
+            flowOf(Data("g")),
+            flowOf(Data("h")),
+        ) { a, b, c, d, e, f, g, h -> a + b + c + d + e + f + g + h }
+            .first()
+
+        Assertions.assertEquals(content, Data("abcdefgh"))
+    }
+
+    @Test
+    fun `Combined value should be the same for nonuple and content`() = runTest {
+        val content = combineContent(
+            flowOf(Data("a")),
+            flowOf(Data("b")),
+            flowOf(Data("c")),
+            flowOf(Data("d")),
+            flowOf(Data("e")),
+            flowOf(Data("f")),
+            flowOf(Data("g")),
+            flowOf(Data("h")),
+            flowOf(Data("i")),
+        ) { a, b, c, d, e, f, g, h, i -> a + b + c + d + e + f + g + h + i }
+            .first()
+
+        Assertions.assertEquals(content, Data("abcdefghi"))
+    }
+
+    @Test
     fun `Combined value should be the same for vararg and list parameters`() = runFlowTest(testCombined) {
         flows.forEachIndexed { index, flow -> flow.emit(Data("$index")) }
         val combinedFromList = expectMostRecentItem()
