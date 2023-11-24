@@ -48,7 +48,7 @@ class DataObservableDelegateTest : BaseDataObservableDelegateTest() {
         whenever(fromNetwork.invoke(eq(params))).thenReturn(Single.fromCallable { domain })
 
         val testObserver =
-            dataObservableDelegate.observe(params = params, forceReload = true).test()
+            dataObservableDelegate.observe(params = params, loadingStrategy = LoadingStrategy.ForceReload).test()
 
         testObserver.assertValueCount(1)
         testObserver.assertValueAt(0, Data(null, error = null, loading = true))
@@ -71,7 +71,7 @@ class DataObservableDelegateTest : BaseDataObservableDelegateTest() {
         storage[params] = cachedDomain
 
         val testObserver =
-            dataObservableDelegate.observe(params = params, forceReload = true).test()
+            dataObservableDelegate.observe(params = params, loadingStrategy = LoadingStrategy.ForceReload).test()
 
         testObserver.assertValueCount(1)
         testObserver.assertValueAt(0, Data(null, error = null, loading = true))
@@ -100,7 +100,7 @@ class DataObservableDelegateTest : BaseDataObservableDelegateTest() {
             domain
         })
 
-        dataObservableDelegate.observe(params = params, forceReload = true).test()
+        dataObservableDelegate.observe(params = params, loadingStrategy = LoadingStrategy.ForceReload).test()
 
         verifyNoMoreInteractions(fromNetwork)
 
@@ -118,7 +118,7 @@ class DataObservableDelegateTest : BaseDataObservableDelegateTest() {
         storage[params] = cachedDomain
 
         val testObserver =
-            dataObservableDelegate.observe(params = params, forceReload = false)
+            dataObservableDelegate.observe(params = params, loadingStrategy = LoadingStrategy.Auto)
                 .extractContent()
                 .firstOrError() // gets storage and unsubscribes before network emits
                 .test()
@@ -157,7 +157,7 @@ class DataObservableDelegateTest : BaseDataObservableDelegateTest() {
         storage[params] = cachedDomain
 
         val testObserver =
-            dataObservableDelegate.observe(params = params, forceReload = false)
+            dataObservableDelegate.observe(params = params, loadingStrategy = LoadingStrategy.Auto)
                 .extractContent()
                 .firstOrError() // gets storage and un-subscribes before network emits
                 .test()
@@ -178,7 +178,7 @@ class DataObservableDelegateTest : BaseDataObservableDelegateTest() {
         whenever(fromNetwork.invoke(eq(params))).thenReturn(Single.fromCallable { domain })
         whenever(toStorage.invoke(any(), any())).thenThrow(IllegalStateException())
 
-        val testObserver = dataObservableDelegate.observe(params = params).test()
+        val testObserver = dataObservableDelegate.observe(params = params, loadingStrategy = LoadingStrategy.Auto).test()
 
         ioScheduler.triggerActions()
 
@@ -191,7 +191,7 @@ class DataObservableDelegateTest : BaseDataObservableDelegateTest() {
         whenever(fromNetwork.invoke(eq(params))).thenReturn(Single.fromCallable { domain })
         whenever(toMemory.invoke(any(), any())).thenThrow(IllegalStateException())
 
-        val testObserver = dataObservableDelegate.observe(params = params).test()
+        val testObserver = dataObservableDelegate.observe(params = params, loadingStrategy = LoadingStrategy.Auto).test()
 
         ioScheduler.triggerActions()
 
@@ -210,7 +210,7 @@ class DataObservableDelegateTest : BaseDataObservableDelegateTest() {
         storage[params] = cachedDomain
 
         val testObserver =
-            dataObservableDelegate.observe(params = params, forceReload = false)
+            dataObservableDelegate.observe(params = params, loadingStrategy = LoadingStrategy.Auto)
                 .extractContent()
                 .firstOrError() // gets storage and un-subscribes before network emits
                 .test()
@@ -239,7 +239,7 @@ class DataObservableDelegateTest : BaseDataObservableDelegateTest() {
         val network2 = Single.fromCallable { domain2 }
 
         whenever(fromNetwork.invoke(eq(params))).thenReturn(network2)
-        dataObservableDelegate.observe(params = params, forceReload = false)
+        dataObservableDelegate.observe(params = params, loadingStrategy = LoadingStrategy.Auto)
             .test()
 
         ioScheduler.triggerActions()
@@ -259,7 +259,7 @@ class DataObservableDelegateTest : BaseDataObservableDelegateTest() {
         storage[params] = cachedDomain
 
         val testObserver =
-            dataObservableDelegate.observe(params = params, forceReload = false)
+            dataObservableDelegate.observe(params = params, loadingStrategy = LoadingStrategy.Auto)
                 .extractContent()
                 .firstOrError() // gets storage and unsubscribes before network emits
                 .test()
@@ -283,7 +283,7 @@ class DataObservableDelegateTest : BaseDataObservableDelegateTest() {
         whenever(fromNetwork.invoke(eq(params))).thenReturn(Single.fromCallable { domain })
 
         //observing with forceReload = false expecting to trigger network call again
-        dataObservableDelegate.observe(params = params, forceReload = false)
+        dataObservableDelegate.observe(params = params, loadingStrategy = LoadingStrategy.Auto)
             .extractContent()
             .firstOrError() // gets storage and unsubscribes before network emits
             .test()
@@ -302,7 +302,7 @@ class DataObservableDelegateTest : BaseDataObservableDelegateTest() {
         whenever(fromNetwork.invoke(eq(params))).thenReturn(Single.fromCallable { throw backendException })
         storage[params] = cachedDomain
 
-        dataObservableDelegate.observe(params = params, forceReload = false)
+        dataObservableDelegate.observe(params = params, loadingStrategy = LoadingStrategy.Auto)
             .extractContent()
             .test().apply { ioScheduler.triggerActions() }
             .assertError(backendException)
@@ -312,7 +312,7 @@ class DataObservableDelegateTest : BaseDataObservableDelegateTest() {
 
         whenever(fromNetwork.invoke(eq(params))).thenReturn(Single.fromCallable { domain })
 
-        dataObservableDelegate.observe(params = params, forceReload = false)
+        dataObservableDelegate.observe(params = params, loadingStrategy = LoadingStrategy.Auto)
             .extractContent()
             .test().apply { ioScheduler.triggerActions() }
             .assertValues(cachedDomain, domain)
@@ -327,7 +327,7 @@ class DataObservableDelegateTest : BaseDataObservableDelegateTest() {
         whenever(fromNetwork.invoke(eq(params))).thenReturn(Single.fromCallable { throw CustomException() })
         storage[params] = cachedDomain
 
-        dataObservableDelegate.observe(params = params, forceReload = false)
+        dataObservableDelegate.observe(params = params, loadingStrategy = LoadingStrategy.Auto)
             .extractContent(consumeErrors = { error, _ -> error.takeUnless { it is CustomException } })
             .test().apply { ioScheduler.triggerActions() }
             .assertValues(cachedDomain)
@@ -337,7 +337,7 @@ class DataObservableDelegateTest : BaseDataObservableDelegateTest() {
 
         whenever(fromNetwork.invoke(eq(params))).thenReturn(Single.fromCallable { domain })
 
-        dataObservableDelegate.observe(params = params, forceReload = false)
+        dataObservableDelegate.observe(params = params, loadingStrategy = LoadingStrategy.Auto)
             .extractContent()
             .test().apply { ioScheduler.triggerActions() }
             .assertValues(cachedDomain)
@@ -351,7 +351,7 @@ class DataObservableDelegateTest : BaseDataObservableDelegateTest() {
         memCache[params] = cachedDomain
 
         val testObserver =
-            dataObservableDelegate.observe(params = params, forceReload = true).test()
+            dataObservableDelegate.observe(params = params, loadingStrategy = LoadingStrategy.ForceReload).test()
 
         testObserver.assertValueCount(1)
         testObserver.assertValueAt(0, Data(content = cachedDomain, error = null, loading = true))
@@ -375,7 +375,7 @@ class DataObservableDelegateTest : BaseDataObservableDelegateTest() {
 
 
         val testObserver =
-            dataObservableDelegate.observe(params = params, forceReload = true).test()
+            dataObservableDelegate.observe(params = params, loadingStrategy = LoadingStrategy.ForceReload).test()
 
         testObserver.assertValueCount(1)
         testObserver.assertValueAt(0, Data(content = cachedDomain, error = null, loading = true))
@@ -392,7 +392,7 @@ class DataObservableDelegateTest : BaseDataObservableDelegateTest() {
         whenever(fromNetwork.invoke(eq(params))).thenReturn(Single.fromCallable { throw backendException })
 
         val testObserver =
-            dataObservableDelegate.observe(params = params, forceReload = true).test()
+            dataObservableDelegate.observe(params = params, loadingStrategy = LoadingStrategy.ForceReload).test()
 
         testObserver.assertValueCount(1)
         testObserver.assertValueAt(0, Data(null, error = null, loading = true))
@@ -416,7 +416,7 @@ class DataObservableDelegateTest : BaseDataObservableDelegateTest() {
         storage[params] = cachedDomain
 
         val testObserver =
-            dataObservableDelegate.observe(params = params, forceReload = true).test()
+            dataObservableDelegate.observe(params = params, loadingStrategy = LoadingStrategy.ForceReload).test()
         testObserver.assertValueCount(1)
         testObserver.assertValueAt(0, Data(null, error = null, loading = true))
 
@@ -440,7 +440,7 @@ class DataObservableDelegateTest : BaseDataObservableDelegateTest() {
         memCache[params] = cachedDomain
 
         val testObserver =
-            dataObservableDelegate.observe(params = params, forceReload = true).test()
+            dataObservableDelegate.observe(params = params, loadingStrategy = LoadingStrategy.ForceReload).test()
 
         testObserver.assertValueCount(1)
         testObserver.assertValueAt(0, Data(content = cachedDomain, error = null, loading = true))
@@ -465,7 +465,7 @@ class DataObservableDelegateTest : BaseDataObservableDelegateTest() {
         whenever(fromNetwork.invoke(eq(params))).thenReturn(Single.fromCallable { domain })
 
         val testObserver =
-            dataObservableDelegate.observe(params = params, forceReload = false).test()
+            dataObservableDelegate.observe(params = params, loadingStrategy = LoadingStrategy.Auto).test()
         testObserver.assertValueCount(1)
         testObserver.assertValueAt(0, Data(null, error = null, loading = true))
 
@@ -487,7 +487,7 @@ class DataObservableDelegateTest : BaseDataObservableDelegateTest() {
         storage[params] = cachedDomain
 
         val testObserver =
-            dataObservableDelegate.observe(params = params, forceReload = false).test()
+            dataObservableDelegate.observe(params = params, loadingStrategy = LoadingStrategy.Auto).test()
         testObserver.assertValueCount(1)
         testObserver.assertValueAt(0, Data(null, error = null, loading = true))
 
@@ -511,7 +511,7 @@ class DataObservableDelegateTest : BaseDataObservableDelegateTest() {
         memCache[params] = cachedDomain
 
         val testObserver =
-            dataObservableDelegate.observe(params = params, forceReload = false).test()
+            dataObservableDelegate.observe(params = params, loadingStrategy = LoadingStrategy.Auto).test()
 
         testObserver.assertValueCount(1)
         testObserver.assertValueAt(0, Data(content = cachedDomain, error = null, loading = false))
@@ -528,7 +528,7 @@ class DataObservableDelegateTest : BaseDataObservableDelegateTest() {
         whenever(fromNetwork.invoke(eq(params))).thenReturn(Single.fromCallable { throw backendException })
 
         val testObserver =
-            dataObservableDelegate.observe(params = params, forceReload = false).test()
+            dataObservableDelegate.observe(params = params, loadingStrategy = LoadingStrategy.Auto).test()
 
         testObserver.assertValueCount(1)
         testObserver.assertValueAt(0, Data(null, error = null, loading = true))
@@ -551,7 +551,7 @@ class DataObservableDelegateTest : BaseDataObservableDelegateTest() {
         storage[params] = cachedDomain
 
         val testObserver =
-            dataObservableDelegate.observe(params = params, forceReload = false).test()
+            dataObservableDelegate.observe(params = params, loadingStrategy = LoadingStrategy.Auto).test()
 
         testObserver.assertValueCount(1)
         testObserver.assertValueAt(0, Data(null, error = null, loading = true))
@@ -585,14 +585,14 @@ class DataObservableDelegateTest : BaseDataObservableDelegateTest() {
         memCache[params] = cachedDomain
 
         val testObserver1 =
-            dataObservableDelegate.observe(params = params, forceReload = false).test()
+            dataObservableDelegate.observe(params = params, loadingStrategy = LoadingStrategy.Auto).test()
 
         testObserver1.assertValueCount(1)
         testObserver1.assertValueAt(0, Data(content = cachedDomain, error = null, loading = false))
 
         // refresh with result
         val testObserver2 =
-            dataObservableDelegate.observe(params = params, forceReload = true).test()
+            dataObservableDelegate.observe(params = params, loadingStrategy = LoadingStrategy.ForceReload).test()
 
         testObserver1.assertValueCount(2)
         testObserver1.assertValueAt(0, Data(content = cachedDomain, error = null, loading = false))
@@ -612,7 +612,7 @@ class DataObservableDelegateTest : BaseDataObservableDelegateTest() {
 
         //refresh with error
         val testObserver3 =
-            dataObservableDelegate.observe(params = params, forceReload = true).test()
+            dataObservableDelegate.observe(params = params, loadingStrategy = LoadingStrategy.ForceReload).test()
 
         testObserver1.assertValueCount(4)
         testObserver1.assertValueAt(3, Data(content = domain, error = null, loading = true))
@@ -646,7 +646,7 @@ class DataObservableDelegateTest : BaseDataObservableDelegateTest() {
 
     @Test
     fun `re-subscribing to constructed stream re-fetches memory cache`() {
-        val observable = dataObservableDelegate.observe(params, forceReload = true)
+        val observable = dataObservableDelegate.observe(params, loadingStrategy = LoadingStrategy.ForceReload)
 
         observable.test().awaitCount(1).dispose()
         verify(fromMemory, times(1)).invoke(eq(params))
@@ -662,7 +662,7 @@ class DataObservableDelegateTest : BaseDataObservableDelegateTest() {
         whenever(fromNetwork.invoke(eq(params))).thenReturn(Single.fromCallable { domain })
 
         val testObserver =
-            dataObservableDelegate.observe(params = params, forceReload = false).test()
+            dataObservableDelegate.observe(params = params, loadingStrategy = LoadingStrategy.Auto).test()
 
         ioScheduler.triggerActions()
 
@@ -727,7 +727,7 @@ class DataObservableDelegateTest : BaseDataObservableDelegateTest() {
         whenever(fromStorage.invoke(any())).thenThrow(error)
 
         val testObserver =
-            dataObservableDelegate.observe(params = params, forceReload = false).test()
+            dataObservableDelegate.observe(params = params, loadingStrategy = LoadingStrategy.Auto).test()
 
         ioScheduler.triggerActions()
 
@@ -751,7 +751,7 @@ class DataObservableDelegateTest : BaseDataObservableDelegateTest() {
 
         whenever(fromNetwork.invoke(eq(params))).thenReturn(Single.fromCallable { domain })
 
-        dataObservableDelegate.observe(params = params, forceReload = true)
+        dataObservableDelegate.observe(params = params, loadingStrategy = LoadingStrategy.ForceReload)
             .takeUntilLoaded()
             .test()
             .apply { ioScheduler.triggerActions() }
@@ -767,7 +767,7 @@ class DataObservableDelegateTest : BaseDataObservableDelegateTest() {
         memCache[params] = cachedDomain
 
         val testObserver =
-            dataObservableDelegate.observe(params = params, forceReload = true).test()
+            dataObservableDelegate.observe(params = params, loadingStrategy = LoadingStrategy.ForceReload).test()
 
         testObserver.assertValueCount(1)
         testObserver.assertValueAt(0, Data(content = cachedDomain, error = null, loading = true))
@@ -790,7 +790,7 @@ class DataObservableDelegateTest : BaseDataObservableDelegateTest() {
         memCache[params] = cachedDomain
 
         val testObserver =
-            dataObservableDelegate.observe(params = params, forceReload = true).test()
+            dataObservableDelegate.observe(params = params, loadingStrategy = LoadingStrategy.ForceReload).test()
 
         testObserver.assertValueCount(1)
         testObserver.assertValueAt(0, Data(content = cachedDomain, error = null, loading = true))
@@ -812,7 +812,7 @@ class DataObservableDelegateTest : BaseDataObservableDelegateTest() {
         memCache[params] = cachedDomain
 
         val testObserver =
-            dataObservableDelegate.observe(params = params, forceReload = true).test()
+            dataObservableDelegate.observe(params = params, loadingStrategy = LoadingStrategy.ForceReload).test()
 
         testObserver.assertValueCount(1)
         testObserver.assertValueAt(0, Data(content = cachedDomain, error = null, loading = true))
@@ -835,7 +835,7 @@ class DataObservableDelegateTest : BaseDataObservableDelegateTest() {
         storage[params] = cachedDomain
 
         val testObserver =
-            dataObservableDelegate.observe(params = params, forceReload = true).test()
+            dataObservableDelegate.observe(params = params, loadingStrategy = LoadingStrategy.ForceReload).test()
 
         testObserver.assertValueCount(1)
         testObserver.assertValueAt(0, Data(content = null, error = null, loading = true))
@@ -849,5 +849,48 @@ class DataObservableDelegateTest : BaseDataObservableDelegateTest() {
 
         testObserver.assertValueCount(3)
         testObserver.assertValueAt(2, Data(content = cachedDomain, error = RuntimeException()))
+    }
+
+    @Test
+    fun `WHEN fromMemory returns null, fromStorage has value AND LoadingStrategy is LazyReload THEN subscriber receives storage value`() {
+        whenever(fromMemory.invoke(any())).thenReturn(null)
+        storage[params] = cachedDomain
+
+        val testObserver =
+            dataObservableDelegate.observe(params = params, loadingStrategy = LoadingStrategy.LazyReload).test()
+
+        testObserver.assertValueCount(1)
+        testObserver.assertValueAt(0, Data(content = null, error = null, loading = true))
+        ioScheduler.triggerActions()
+
+        testObserver.assertValueCount(2)
+        testObserver.assertValueAt(1, Data(content = cachedDomain, error = null, loading = true))
+
+        ioScheduler.triggerActions()
+
+        verifyNoMoreInteractions(fromNetwork)
+    }
+
+    @Test
+    fun `WHEN fromMemory returns null, fromStorage returns null AND LoadingStrategy is LazyReload THEN subscriber receives network value`() {
+        whenever(fromNetwork.invoke(eq(params))).thenReturn(Single.fromCallable { domain })
+        whenever(fromMemory.invoke(any())).thenReturn(null)
+        val testObserver =
+            dataObservableDelegate.observe(params = params, loadingStrategy = LoadingStrategy.LazyReload).test()
+
+        testObserver.assertValueCount(1)
+        testObserver.assertValueAt(0, Data(content = null, error = null, loading = true))
+        ioScheduler.triggerActions()
+
+        testObserver.assertValueCount(2)
+        testObserver.assertValueAt(1, Data(content = domain, error = null, loading = false))
+
+        ioScheduler.triggerActions()
+
+        verify(fromNetwork, only()).invoke(eq(params))
+        verify(fromMemory, only()).invoke(eq(params))
+        verify(toMemory, only()).invoke(eq(params), eq(domain))
+        verify(fromStorage, only()).invoke(eq(params))
+        verify(toStorage, only()).invoke(eq(params), eq(domain))
     }
 }

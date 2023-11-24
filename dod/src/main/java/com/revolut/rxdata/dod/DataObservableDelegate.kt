@@ -98,15 +98,14 @@ class DataObservableDelegate<Params : Any, Domain : Any> constructor(
      * Requests data from network and subscribes to updates
      * (can be triggered by other subscribers or manual cache overrides)
      *
-     * @param forceReload - if true network request will be made even if data exists in caches
+     * @param loadingStrategy - [LoadingStrategy]
      */
-    @Suppress("RedundantLambdaArrow")
-    fun observe(params: Params, forceReload: Boolean = true): Observable<Data<Domain>> =
+    fun observe(params: Params, loadingStrategy: LoadingStrategy): Observable<Data<Domain>> =
         Observable.defer {
             val memCache = fromMemory(params)
             val memoryIsEmpty = memCache == null
             val subject = subject(params)
-            val loading = forceReload || memoryIsEmpty || failedNetworkRequests.containsKey(params)
+            val loading = loadingStrategy.refreshMemory || memoryIsEmpty || failedNetworkRequests.containsKey(params)
 
             val observable: Observable<Data<Domain>> = if (memCache != null) {
                 concat(
@@ -114,7 +113,7 @@ class DataObservableDelegate<Params : Any, Domain : Any> constructor(
                     subject
                 ).doAfterSubscribe {
                     if (loading) {
-                        subject.onNext(Data(content = memCache, loading = loading))
+                        subject.onNext(Data(content = memCache, loading = true))
                         fetchFromNetwork(memCache, params)
                     }
                 }
@@ -125,7 +124,9 @@ class DataObservableDelegate<Params : Any, Domain : Any> constructor(
                             just(cached),
                             subject
                         ).doAfterSubscribe {
-                            fetchFromNetwork(cached.content, params)
+                            if (loadingStrategy.refreshStorage || cached.content == null) {
+                                fetchFromNetwork(cached.content, params)
+                            }
                         }
                     }
                     .startWith(Data(null, loading = true))
@@ -135,6 +136,19 @@ class DataObservableDelegate<Params : Any, Domain : Any> constructor(
                 .distinctUntilChanged()
                 .muteRepetitiveReloading()
         }
+
+    /**
+     * Requests data from network and subscribes to updates
+     * (can be triggered by other subscribers or manual cache overrides)
+     *
+     * @param forceReload - if true network request will be made even if data exists in caches
+     */
+    @Deprecated(
+        message = "please migrate to the method with the LoadingStrategy",
+        replaceWith = ReplaceWith("fun observe(params: Params, loadingStrategy: LoadingStrategy)")
+    )
+    fun observe(params: Params, forceReload: Boolean = true): Observable<Data<Domain>> =
+        observe(params, loadingStrategy = if (forceReload) LoadingStrategy.ForceReload else LoadingStrategy.Auto)
 
     private fun Observable<Data<Domain>>.muteRepetitiveReloading(): Observable<Data<Domain>> =
         this.scan(ReloadingDataScanner<Domain>()) { scanner, newEmit ->
