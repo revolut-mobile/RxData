@@ -864,7 +864,7 @@ class DataObservableDelegateTest : BaseDataObservableDelegateTest() {
         ioScheduler.triggerActions()
 
         testObserver.assertValueCount(2)
-        testObserver.assertValueAt(1, Data(content = cachedDomain, error = null, loading = true))
+        testObserver.assertValueAt(1, Data(content = cachedDomain, error = null, loading = false))
 
         ioScheduler.triggerActions()
 
