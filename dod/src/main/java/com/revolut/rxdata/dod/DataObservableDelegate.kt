@@ -120,11 +120,17 @@ class DataObservableDelegate<Params : Any, Domain : Any> constructor(
             } else {
                 sharedStorageRequest.getOrLoad(params)
                     .flatMapObservable { cached ->
+                        val needToFetchFromNetwork = loadingStrategy.refreshStorage || cached.content == null
+                        val cachedObservable = if (needToFetchFromNetwork) {
+                            just(cached)
+                        } else {
+                            just(cached.copy(loading = false))
+                        }
                         concat(
-                            just(cached),
+                            cachedObservable,
                             subject
                         ).doAfterSubscribe {
-                            if (loadingStrategy.refreshStorage || cached.content == null) {
+                            if (needToFetchFromNetwork) {
                                 fetchFromNetwork(cached.content, params)
                             }
                         }
