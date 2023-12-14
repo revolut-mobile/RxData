@@ -21,9 +21,9 @@ And then to the module level `build.gradle.kts`:
 
 ```
 dependencies {
-    implementation 'com.revolut.rxdata:dod:1.5.14'
-    implementation 'com.revolut.rxdata:core:1.5.14'
-    implementation 'com.revolut.rxdata:scheduler:1.5.14'
+    implementation 'com.revolut.rxdata:dod:1.5.15'
+    implementation 'com.revolut.rxdata:core:1.5.15'
+    implementation 'com.revolut.rxdata:scheduler:1.5.15'
 }
 ```
 
