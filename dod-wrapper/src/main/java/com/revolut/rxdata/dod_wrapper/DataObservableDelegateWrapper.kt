@@ -2,6 +2,7 @@ package com.revolut.rxdata.dod_wrapper
 
 import com.revolut.data.model.Data
 import com.revolut.rxdata.dod.DataObservableDelegate
+import com.revolut.rxdata.dod.LoadingStrategy
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.rx2.asFlow
@@ -63,10 +64,17 @@ class DataObservableDelegateWrapper<Params : Any, Domain : Any>(
         }
     )
 
+    @Deprecated(
+        message = "please migrate to the method with the LoadingStrategy",
+        replaceWith = ReplaceWith("fun observe(params: Params, loadingStrategy: LoadingStrategy)")
+    )
     fun observe(params: Params, forceReload: Boolean = true): Flow<Data<Domain>> =
+        observe(params, loadingStrategy = if (forceReload) LoadingStrategy.ForceReload else LoadingStrategy.Auto)
+
+    fun observe(params: Params, loadingStrategy: LoadingStrategy): Flow<Data<Domain>> =
         inner.observe(
             params = params,
-            forceReload = forceReload,
+            loadingStrategy = loadingStrategy,
         ).asFlow()
 
     /**

@@ -2,6 +2,7 @@ package com.revolut.rxdata.dod_wrapper
 
 import app.cash.turbine.test
 import com.revolut.data.model.Data
+import com.revolut.rxdata.dod.LoadingStrategy
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -42,7 +43,7 @@ class DataObservableDelegateWrapperTest {
     fun `GIVEN no data in memory and storage WHEN observe THEN return loading and network data`() = runTest {
         val delegate = createDelegate()
 
-        delegate.observe(params = param, forceReload = false).test {
+        delegate.observe(params = param, loadingStrategy = LoadingStrategy.Auto).test {
             awaitItem() shouldBe Data(loading = true)
             awaitItem() shouldBe Data(content = networkResult)
         }
@@ -56,7 +57,7 @@ class DataObservableDelegateWrapperTest {
             fromStorage = { throw IOException("No data") },
         )
 
-        delegate.observe(params = param, forceReload = false).test {
+        delegate.observe(params = param, loadingStrategy = LoadingStrategy.Auto).test {
             awaitItem() shouldBe Data(loading = true)
             awaitItem() shouldBe Data(error = IOException("No data"), loading = true)
             awaitItem() shouldBe Data(content = networkResult)
@@ -70,7 +71,7 @@ class DataObservableDelegateWrapperTest {
         storage[param] = storageResult
         val delegate = createDelegate()
 
-        delegate.observe(params = param, forceReload = false).test {
+        delegate.observe(params = param, loadingStrategy = LoadingStrategy.Auto).test {
             awaitItem() shouldBe Data(loading = true)
             awaitItem() shouldBe Data(content = storageResult, loading = true)
             awaitItem() shouldBe Data(content = networkResult)
@@ -84,7 +85,7 @@ class DataObservableDelegateWrapperTest {
         memoryCache[param] = memoryResult
         val delegate = createDelegate()
 
-        delegate.observe(params = param, forceReload = false).test {
+        delegate.observe(params = param, loadingStrategy = LoadingStrategy.Auto).test {
             awaitItem() shouldBe Data(content = memoryResult)
         }
     }
@@ -94,7 +95,7 @@ class DataObservableDelegateWrapperTest {
         memoryCache[param] = memoryResult
         val delegate = createDelegate()
 
-        delegate.observe(params = param, forceReload = true).test {
+        delegate.observe(params = param, loadingStrategy = LoadingStrategy.ForceReload).test {
             awaitItem() shouldBe Data(content = memoryResult, loading = true)
             awaitItem() shouldBe Data(content = networkResult)
         }
@@ -107,7 +108,7 @@ class DataObservableDelegateWrapperTest {
             fromNetwork = { throw IOException("Network error") },
         )
 
-        delegate.observe(params = param, forceReload = true).test {
+        delegate.observe(params = param, loadingStrategy = LoadingStrategy.ForceReload).test {
             awaitItem() shouldBe Data(content = memoryResult, loading = true)
             awaitItem() shouldBe Data(content = memoryResult, error = IOException("Network error"))
         }
@@ -119,7 +120,7 @@ class DataObservableDelegateWrapperTest {
         val delegate = createDelegate()
         val updatedValue = "Updated value"
 
-        delegate.observe(params = param, forceReload = false).test {
+        delegate.observe(params = param, loadingStrategy = LoadingStrategy.Auto).test {
             awaitItem() shouldBe Data(content = memoryResult)
             delegate.updateAll(param, updatedValue)
             awaitItem() shouldBe Data(content = updatedValue)
@@ -134,7 +135,7 @@ class DataObservableDelegateWrapperTest {
         val delegate = createDelegate()
         val updatedValue = "Updated value"
 
-        delegate.observe(params = param, forceReload = false).test {
+        delegate.observe(params = param, loadingStrategy = LoadingStrategy.Auto).test {
             awaitItem() shouldBe Data(content = memoryResult)
             delegate.updateMemory(param, updatedValue)
             awaitItem() shouldBe Data(content = updatedValue)
@@ -149,7 +150,7 @@ class DataObservableDelegateWrapperTest {
         val delegate = createDelegate()
         val updatedValue = "Updated value"
 
-        delegate.observe(params = param, forceReload = false).test {
+        delegate.observe(params = param, loadingStrategy = LoadingStrategy.Auto).test {
             awaitItem() shouldBe Data(content = memoryResult)
             delegate.updateStorage(param, updatedValue)
             awaitItem() shouldBe Data(content = updatedValue)
@@ -164,7 +165,7 @@ class DataObservableDelegateWrapperTest {
         val delegate = createDelegate()
         val updatedValue = "Updated value"
 
-        delegate.observe(params = param, forceReload = false).test {
+        delegate.observe(params = param, loadingStrategy = LoadingStrategy.Auto).test {
             awaitItem() shouldBe Data(content = memoryResult)
             memoryCache[param] = updatedValue
             delegate.notifyFromMemory { true }
@@ -178,7 +179,7 @@ class DataObservableDelegateWrapperTest {
         storage[param] = storageResult
         val delegate = createDelegate()
 
-        delegate.observe(params = param, forceReload = false).test {
+        delegate.observe(params = param, loadingStrategy = LoadingStrategy.Auto).test {
             awaitItem() shouldBe Data(content = memoryResult)
             delegate.remove(param)
             awaitItem() shouldBe Data(content = null)
@@ -193,7 +194,7 @@ class DataObservableDelegateWrapperTest {
         storage[param] = storageResult
         val delegate = createDelegate()
 
-        delegate.observe(params = param, forceReload = false).test {
+        delegate.observe(params = param, loadingStrategy = LoadingStrategy.Auto).test {
             awaitItem() shouldBe Data(content = memoryResult)
             delegate.reload(param)
             awaitItem() shouldBe Data(content = memoryResult, loading = true)
