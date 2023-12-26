@@ -893,4 +893,50 @@ class DataObservableDelegateTest : BaseDataObservableDelegateTest() {
         verify(fromStorage, only()).invoke(eq(params))
         verify(toStorage, only()).invoke(eq(params), eq(domain))
     }
+
+    @Test
+    fun `WHEN previous LoadingStrategy is LazyReload AND memory cache is empty THEN observe LoadingStrategy Auto will reload`() {
+        whenever(fromMemory.invoke(any())).thenReturn(null)
+        storage[params] = cachedDomain
+
+        dataObservableDelegate.observe(params = params, loadingStrategy = LoadingStrategy.LazyReload)
+            .extractContent()
+            .test().apply { ioScheduler.triggerActions() }
+            .assertValues(cachedDomain)
+
+        assertEquals(cachedDomain, memCache[params])
+
+        verify(fromNetwork, times(0)).invoke(eq(params))
+
+        whenever(fromNetwork.invoke(eq(params))).thenReturn(Single.fromCallable { domain })
+
+        dataObservableDelegate.observe(params = params, loadingStrategy = LoadingStrategy.Auto)
+            .extractContent()
+            .test().apply { ioScheduler.triggerActions() }
+            .assertValues(cachedDomain, domain)
+
+        verify(fromNetwork, times(1)).invoke(eq(params))
+    }
+
+    @Test
+    fun `WHEN previous LoadingStrategy is LazyReload AND memory cache is empty THEN observe LoadingStrategy LazyReload will not reload from the network`() {
+        whenever(fromMemory.invoke(any())).thenReturn(null)
+        storage[params] = cachedDomain
+
+        dataObservableDelegate.observe(params = params, loadingStrategy = LoadingStrategy.LazyReload)
+            .extractContent()
+            .test().apply { ioScheduler.triggerActions() }
+            .assertValues(cachedDomain)
+
+        assertEquals(cachedDomain, memCache[params])
+
+        whenever(fromMemory.invoke(any())).thenReturn(cachedDomain)
+
+        dataObservableDelegate.observe(params = params, loadingStrategy = LoadingStrategy.LazyReload)
+            .extractContent()
+            .test().apply { ioScheduler.triggerActions() }
+            .assertValues(cachedDomain)
+
+        verify(fromNetwork, times(0)).invoke(eq(params))
+    }
 }
