@@ -59,6 +59,7 @@ class DataObservableDelegate<Params : Any, Domain : Any> constructor(
                 }
                 .doAfterSuccess { domain ->
                     failedNetworkRequests.remove(params)
+                    memoryCacheIsFromStorage.remove(params)
 
                     val data = Data(content = domain)
                     subject(params).onNext(data)
@@ -93,6 +94,7 @@ class DataObservableDelegate<Params : Any, Domain : Any> constructor(
      * even if forceReload == false and memory is not empty
      */
     private val failedNetworkRequests = ConcurrentHashMap<Params, Throwable>()
+    private val memoryCacheIsFromStorage = ConcurrentHashMap<Params, Boolean>()
 
     /**
      * Requests data from network and subscribes to updates
@@ -105,7 +107,10 @@ class DataObservableDelegate<Params : Any, Domain : Any> constructor(
             val memCache = fromMemory(params)
             val memoryIsEmpty = memCache == null
             val subject = subject(params)
-            val loading = loadingStrategy.refreshMemory || memoryIsEmpty || failedNetworkRequests.containsKey(params)
+            val loading = loadingStrategy.refreshMemory
+                    || memoryIsEmpty
+                    || failedNetworkRequests.containsKey(params)
+                    || (memoryCacheIsFromStorage[params] == true && loadingStrategy.refreshStorage)
 
             val observable: Observable<Data<Domain>> = if (memCache != null) {
                 concat(
@@ -124,6 +129,7 @@ class DataObservableDelegate<Params : Any, Domain : Any> constructor(
                         val cachedObservable = if (needToFetchFromNetwork) {
                             just(cached)
                         } else {
+                            memoryCacheIsFromStorage[params] = true
                             just(cached.copy(loading = false))
                         }
                         concat(
